@@ -1,0 +1,2 @@
+# iCalClassIsland
+在ClassIsland上面增加日历功能，支持从iCal中导入
