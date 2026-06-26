@@ -19,6 +19,7 @@ public partial class IcalComponentSettingsControl : ComponentBase<IcalComponentS
 
         // 初始化所有控件值
         CmbExtraInfo.SelectedIndex = s.ExtraInfoType;
+        CmbTomorrowMode.SelectedIndex = s.TomorrowShowMode;
         ChkCountdown.IsChecked = s.IsCountdownEnabled;
         NumCountdownSec.Value = s.CountdownSeconds;
         ChkProgress.IsChecked = s.ShowProgressBar;
@@ -33,6 +34,7 @@ public partial class IcalComponentSettingsControl : ComponentBase<IcalComponentS
 
         // 双向同步：控件变更 → 写回 Settings
         CmbExtraInfo.SelectionChanged += (_, _) => s.ExtraInfoType = CmbExtraInfo.SelectedIndex;
+        CmbTomorrowMode.SelectionChanged += (_, _) => s.TomorrowShowMode = CmbTomorrowMode.SelectedIndex;
         ChkCountdown.IsCheckedChanged += (_, _) => { s.IsCountdownEnabled = ChkCountdown.IsChecked == true; PnlCountdownSec.IsVisible = s.IsCountdownEnabled; };
         NumCountdownSec.ValueChanged += (_, _) => s.CountdownSeconds = (int)(NumCountdownSec.Value ?? 60);
         ChkProgress.IsCheckedChanged += (_, _) => s.ShowProgressBar = ChkProgress.IsChecked == true;

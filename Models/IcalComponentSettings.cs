@@ -18,6 +18,7 @@ public class IcalComponentSettings : INotifyPropertyChanged
     private string _placeholderTextAllEnded = "今日日程已全部结束。";
     private double _scheduleSpacing = 1.0;
     private bool _showExtraInfoOnTimePoint = true;
+    private int _tomorrowShowMode; // 0=不显示, 1=占位时显示, 2=始终显示
 
     public int ExtraInfoType { get => _extraInfoType; set { if (value == _extraInfoType) return; _extraInfoType = value; OnPropertyChanged(); } }
     public bool IsCountdownEnabled { get => _isCountdownEnabled; set { if (value == _isCountdownEnabled) return; _isCountdownEnabled = value; OnPropertyChanged(); } }
@@ -29,6 +30,8 @@ public class IcalComponentSettings : INotifyPropertyChanged
     public string PlaceholderTextAllEnded { get => _placeholderTextAllEnded; set { if (value == _placeholderTextAllEnded) return; _placeholderTextAllEnded = value; OnPropertyChanged(); } }
     public double ScheduleSpacing { get => _scheduleSpacing; set { if (value == _scheduleSpacing) return; _scheduleSpacing = value; OnPropertyChanged(); } }
     public bool ShowExtraInfoOnTimePoint { get => _showExtraInfoOnTimePoint; set { if (value == _showExtraInfoOnTimePoint) return; _showExtraInfoOnTimePoint = value; OnPropertyChanged(); } }
+    /// <summary>显示明天日程的模式：0=不显示, 1=今日结束后, 2=今日空时, 3=始终</summary>
+    public int TomorrowShowMode { get => _tomorrowShowMode; set { if (value == _tomorrowShowMode) return; _tomorrowShowMode = value; OnPropertyChanged(); } }
 
     public event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));

@@ -19,27 +19,24 @@ namespace iCalClassIsland.Controls;
 public partial class IcalComponent : ComponentBase<IcalComponentSettings>
 {
     private readonly IExactTimeService _exactTimeService;
-    private DispatcherTimer? _timer;
+    private readonly ILessonsService _lessonsService;
     private int _tickCounter;
     private List<IcalCalendarEvent> _todayEvents = [];
-    private bool _hasEvents;
+    private List<IcalCalendarEvent> _tomorrowEvents = [];
+    private bool _showingTomorrow;
+    private DateTime _lastDate;
 
     private readonly Dictionary<IcalCalendarEvent, EventRowControls> _rowControls = [];
 
-    public bool HasEvents
-    {
-        get => _hasEvents;
-        set { if (value == _hasEvents) return; _hasEvents = value; OnPropertyChanged(); }
-    }
-
-    public IcalComponent(IExactTimeService exactTimeService)
+    public IcalComponent(IExactTimeService exactTimeService, ILessonsService lessonsService)
     {
         _exactTimeService = exactTimeService;
+        _lessonsService = lessonsService;
         DataContext = this;
-        VerticalAlignment = Avalonia.Layout.VerticalAlignment.Stretch;
-        HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch;
-        VerticalContentAlignment = Avalonia.Layout.VerticalAlignment.Stretch;
-        HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Stretch;
+        VerticalAlignment = VerticalAlignment.Stretch;
+        HorizontalAlignment = HorizontalAlignment.Stretch;
+        VerticalContentAlignment = VerticalAlignment.Stretch;
+        HorizontalContentAlignment = HorizontalAlignment.Stretch;
         InitializeComponent();
         AttachedToVisualTree += OnAttached;
         DetachedFromVisualTree += OnDetached;
@@ -47,53 +44,103 @@ public partial class IcalComponent : ComponentBase<IcalComponentSettings>
 
     private void OnAttached(object? s, VisualTreeAttachmentEventArgs e)
     {
-        // 订阅配置变更
+        // 使用 ClassIsland 主循环（与课程表组件一致）
+        _lessonsService.PostMainTimerTicked += OnPostMainTimerTicked;
+        _lessonsService.CurrentTimeStateChanged += OnCurrentTimeStateChanged;
+        _exactTimeService.PropertyChanged += OnTimeServiceChanged;
+
         var plugin = IAppHost.TryGetService<Plugin>();
         if (plugin != null) plugin.ConfigChanged += OnConfigChanged;
+        if (Settings is INotifyPropertyChanged npc) npc.PropertyChanged += OnSettingsChanged;
 
-        _timer = new DispatcherTimer(TimeSpan.FromMilliseconds(50), DispatcherPriority.Normal, OnTick);
-        _timer.Start();
+        _lastDate = _exactTimeService.GetCurrentLocalDateTime().Date;
         RefreshEvents();
     }
 
     private void OnDetached(object? s, VisualTreeAttachmentEventArgs e)
     {
+        _lessonsService.PostMainTimerTicked -= OnPostMainTimerTicked;
+        _lessonsService.CurrentTimeStateChanged -= OnCurrentTimeStateChanged;
+        _exactTimeService.PropertyChanged -= OnTimeServiceChanged;
+
         var plugin = IAppHost.TryGetService<Plugin>();
         if (plugin != null) plugin.ConfigChanged -= OnConfigChanged;
-        _timer?.Stop();
-        _timer = null;
+        if (Settings is INotifyPropertyChanged npc) npc.PropertyChanged -= OnSettingsChanged;
     }
 
-    private void OnConfigChanged() => Dispatcher.UIThread.Post(RefreshEvents);
+    // ---- 事件订阅（仿照 ScheduleComponent） ----
 
-    private void OnTick(object? s, EventArgs e)
+    /// <summary>主循环回调：50ms 更新显示 + 定期刷新</summary>
+    private void OnPostMainTimerTicked(object? s, EventArgs e)
     {
         _tickCounter++;
-        if (_tickCounter % 600 == 0) { RefreshEvents(); return; }          // 30s 刷新
-        if (_todayEvents.Count == 0 && _tickCounter % 40 == 0) { RefreshEvents(); return; } // 无事件时 2s 重试
-        UpdateDisplay();
+        var now = _exactTimeService.GetCurrentLocalDateTime();
+        var dayChanged = now.Date != _lastDate;
+
+        if (dayChanged || _tickCounter % 600 == 0)
+        {
+            _lastDate = now.Date;
+            RefreshEvents();
+            return;
+        }
+        if (_todayEvents.Count == 0 && _tickCounter % 20 == 0)
+        {
+            RefreshEvents();
+            return;
+        }
+        if (_todayEvents.Count > 0 || (_showingTomorrow && _tomorrowEvents.Count > 0))
+        {
+            UpdateDisplay();
+            if (!_showingTomorrow && _todayEvents.All(e => now >= e.End))
+                RefreshEvents();
+        }
     }
 
-    private IcalComponentSettings S => Settings; // 简写
+    /// <summary>状态变化回调（放学等）</summary>
+    private void OnCurrentTimeStateChanged(object? s, EventArgs e) => RefreshEvents();
+
+    /// <summary>时间服务变更（调试改时间）</summary>
+    private void OnTimeServiceChanged(object? s, PropertyChangedEventArgs e) => RefreshEvents();
+
+    private void OnConfigChanged() => Dispatcher.UIThread.Post(RefreshEvents);
+    private void OnSettingsChanged(object? s, PropertyChangedEventArgs e) => Dispatcher.UIThread.Post(RefreshEvents);
+
+    // ---- 事件加载 ----
+
+    private IcalComponentSettings S => Settings;
 
     private void RefreshEvents()
     {
+        var now = _exactTimeService.GetCurrentLocalDateTime();
+        _lastDate = now.Date;
         try
         {
             var svc = IAppHost.TryGetService<IcalService>();
             var p = IAppHost.TryGetService<Plugin>()?.PluginSettings;
-            _todayEvents = (svc != null && p != null && !string.IsNullOrWhiteSpace(p.IcalFilePath))
-                ? svc.GetTodayEvents(p.IcalFilePath, _exactTimeService.GetCurrentLocalDateTime()) : [];
+            if (svc != null && p != null && !string.IsNullOrWhiteSpace(p.IcalFilePath))
+            {
+                _todayEvents = svc.GetTodayEvents(p.IcalFilePath, now);
+                var tomorrow = now.Date.AddDays(1);
+                _tomorrowEvents = svc.GetEvents(p.IcalFilePath, tomorrow, tomorrow.AddDays(1));
+            }
+            else { _todayEvents = []; _tomorrowEvents = []; }
         }
-        catch { _todayEvents = []; }
+        catch { _todayEvents = []; _tomorrowEvents = []; }
 
-        var now = _exactTimeService.GetCurrentLocalDateTime();
         var allEnded = _todayEvents.Count > 0 && _todayEvents.All(e => now >= e.End);
+        var showTomorrow = ShouldShowTomorrow(allEnded) && _tomorrowEvents.Count > 0;
 
-        if (_todayEvents.Count == 0)
+        if (showTomorrow)
         {
-            // 无事件
-            HasEvents = false;
+            _showingTomorrow = true;
+            TomorrowBadge.IsVisible = true;
+            EventRow.IsVisible = true;
+            Placeholder.IsVisible = false;
+        }
+        else if (_todayEvents.Count == 0)
+        {
+            _showingTomorrow = false;
+            TomorrowBadge.IsVisible = false;
             EventRow.IsVisible = false;
             Placeholder.IsVisible = true;
             var p = IAppHost.TryGetService<Plugin>()?.PluginSettings;
@@ -104,16 +151,16 @@ public partial class IcalComponent : ComponentBase<IcalComponentSettings>
         }
         else if (allEnded)
         {
-            // 今日全部结束
-            HasEvents = false;
+            _showingTomorrow = false;
+            TomorrowBadge.IsVisible = false;
             EventRow.IsVisible = false;
             Placeholder.IsVisible = true;
             Placeholder.Text = S.ShowPlaceholderOnEmpty ? S.PlaceholderTextAllEnded : "";
         }
         else
         {
-            // 有事件
-            HasEvents = true;
+            _showingTomorrow = false;
+            TomorrowBadge.IsVisible = false;
             EventRow.IsVisible = true;
             Placeholder.IsVisible = false;
         }
@@ -122,69 +169,102 @@ public partial class IcalComponent : ComponentBase<IcalComponentSettings>
         UpdateDisplay();
     }
 
+    private bool ShouldShowTomorrow(bool allEnded) => S.TomorrowShowMode switch
+    {
+        1 => _todayEvents.Count == 0 || allEnded,
+        2 => true,
+        _ => false
+    };
+
+    // ---- UI 构建 ----
+
     private void RebuildEventRows()
     {
         _rowControls.Clear();
         EventRow.Children.Clear();
         EventRow.ColumnDefinitions.Clear();
 
-        for (int i = 0; i < _todayEvents.Count; i++)
+        var events = _showingTomorrow ? _tomorrowEvents : _todayEvents;
+        for (int i = 0; i < events.Count; i++)
         {
-            var ctrl = BuildEventRow(_todayEvents[i]);
-            _rowControls[_todayEvents[i]] = ctrl;
-
+            var ctrl = BuildEventRow(events[i]);
+            _rowControls[events[i]] = ctrl;
             EventRow.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
             Grid.SetColumn(ctrl.Root, i);
             EventRow.Children.Add(ctrl.Root);
         }
     }
 
-    /// <summary>
-    /// 构建单个事件行（复制 LessonControlExpanded 布局）
-    /// </summary>
+    private void UpdateDisplay()
+    {
+        var now = _exactTimeService.GetCurrentLocalDateTime();
+        var events = _showingTomorrow ? _tomorrowEvents : _todayEvents;
+
+        for (int i = 0; i < events.Count; i++)
+        {
+            var evt = events[i];
+            if (!_rowControls.TryGetValue(evt, out var ctrl)) continue;
+
+            var isPast = evt.End <= now;
+            var isCurrent = evt.Start <= now && now < evt.End;
+            var totalSec = (evt.End - evt.Start).TotalSeconds;
+            var elapsedSec = (now - evt.Start).TotalSeconds;
+            var leftSec = (evt.End - now).TotalSeconds;
+
+            ctrl.Root.Opacity = isCurrent ? 1.0 : (isPast ? 0.35 : 0.55);
+            if (isCurrent)
+            {
+                var appResources = Application.Current?.Resources;
+                if (appResources?.TryGetValue("MaterialDesignPaperSecondaryBrush", out var bg) == true && bg is IBrush brush)
+                    ctrl.Root.Background = brush;
+                else
+                    ctrl.Root.Background = new SolidColorBrush(Color.FromRgb(0x55, 0x55, 0x55), 0.08);
+            }
+            else ctrl.Root.Background = null;
+
+            ctrl.ProgressBar.IsVisible = isCurrent && S.ShowProgressBar;
+            ctrl.ProgressBar.Value = isCurrent && totalSec > 0 ? Math.Clamp(elapsedSec / totalSec, 0, 1) : (isPast ? 1 : 0);
+
+            ctrl.TimeBlock.Text = isCurrent
+                ? S.ExtraInfoType switch
+                {
+                    0 => $"{evt.Start:HH:mm}-{evt.End:HH:mm}",
+                    1 => $"-{Fmt(TimeSpan.FromSeconds(elapsedSec))}",
+                    2 => $"-{Fmt(TimeSpan.FromSeconds(leftSec))}",
+                    3 => Fmt(evt.End - evt.Start),
+                    4 => totalSec > 0 ? $"-{elapsedSec / totalSec:P0}" : "100%",
+                    _ => $"{evt.Start:HH:mm}-{evt.End:HH:mm}"
+                }
+                : $"{evt.Start:HH:mm}";
+        }
+    }
+
+    private static string Fmt(TimeSpan ts) => ts.TotalHours >= 1
+        ? $"{(int)ts.TotalHours:D2}:{ts.Minutes:D2}:{ts.Seconds:D2}"
+        : $"{ts.Minutes:D2}:{ts.Seconds:D2}";
+
+    // ---- 事件行构建 ----
+
     private EventRowControls BuildEventRow(IcalCalendarEvent evt)
     {
-        // 根 Grid（进度条叠加用）
-        var root = new Grid
-        {
-            VerticalAlignment = VerticalAlignment.Stretch
-        };
-
-        // ---- 水平行 ----
+        var root = new Grid { VerticalAlignment = VerticalAlignment.Stretch };
         var row = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
-
-        // 左侧间距
         row.Children.Add(new Border { Width = 16 });
 
-        // 标题
         var titleBlock = new TextBlock
         {
             VerticalAlignment = VerticalAlignment.Center,
             TextTrimming = TextTrimming.CharacterEllipsis,
             Text = evt.Summary
         };
-        titleBlock.Bind(TextBlock.FontSizeProperty, new Avalonia.Data.Binding
-        {
-            Source = this,
-            Path = "MainWindowEmphasizedFontSize",
-            Mode = Avalonia.Data.BindingMode.OneWay,
-            // Just use dynamic resource
-        });
-        // 简化：直接用资源键
         var appResources = Application.Current?.Resources;
         titleBlock.SetValue(TextBlock.FontSizeProperty,
             (appResources?.TryGetValue("MainWindowEmphasizedFontSize", out var fs) == true ? fs as double? : null) ?? 16.0);
         titleBlock.SetValue(TextBlock.FontWeightProperty, FontWeight.Bold);
-
-        var highlightBox = new HighlightBox { Content = titleBlock };
         var titleGrid = new Grid();
-        titleGrid.Children.Add(highlightBox);
+        titleGrid.Children.Add(new HighlightBox { Content = titleBlock });
         row.Children.Add(titleGrid);
 
-        // 额外信息区
-        var extraInfoPanel = new Panel { Margin = new Thickness(6, 0, 0, 0) };
-
-        // 时间范围文本
         var timeBlock = new TextBlock
         {
             VerticalAlignment = VerticalAlignment.Bottom,
@@ -192,111 +272,36 @@ public partial class IcalComponent : ComponentBase<IcalComponentSettings>
         };
         timeBlock.SetValue(TextBlock.FontSizeProperty,
             (appResources?.TryGetValue("MainWindowSecondaryFontSize", out var fs2) == true ? fs2 as double? : null) ?? 12.0);
-        if (appResources?.TryGetValue("MaterialDesignBodySecondaryBrush", out var fg) == true && fg is IBrush brush)
-            timeBlock.SetValue(TextBlock.ForegroundProperty, brush);
+        if (appResources?.TryGetValue("MaterialDesignBodySecondaryBrush", out var fg) == true && fg is IBrush b)
+            timeBlock.SetValue(TextBlock.ForegroundProperty, b);
+
+        var extraInfoPanel = new Panel { Margin = new Thickness(6, 0, 0, 0) };
         extraInfoPanel.Children.Add(timeBlock);
-
         row.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Stretch, Children = { extraInfoPanel } });
-
-        // 右侧间距
         row.Children.Add(new Border { Width = 16 });
-
         root.Children.Add(row);
 
-        // ---- 进度条（叠加在底部） ----
         var progress = new ProgressBar { Height = 3, Minimum = 0, Maximum = 1, Value = 0, MinWidth = 0 };
         var canvas = new Canvas
         {
-            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
-            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Bottom,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Bottom,
             Height = 3,
-            Margin = new Avalonia.Thickness(0, 0, 0, 0)
+            Margin = new Thickness(0, 0, 0, 0)
         };
-        // 进度条宽度跟随 Canvas 实际宽度
-        progress.Bind(ProgressBar.WidthProperty, new Avalonia.Data.Binding("Bounds.Width")
-        {
-            Source = canvas,
-            Mode = Avalonia.Data.BindingMode.OneWay
-        });
+        progress.SetValue(Avalonia.Controls.Canvas.BottomProperty, 0.0);
+        progress.Bind(ProgressBar.WidthProperty, new Avalonia.Data.Binding("Bounds.Width") { Source = canvas, Mode = Avalonia.Data.BindingMode.OneWay });
         canvas.Children.Add(progress);
         root.Children.Add(canvas);
 
-        return new EventRowControls
-        {
-            Root = root,
-            TitleBlock = titleBlock,
-            TimeBlock = timeBlock,
-            ProgressBar = progress,
-        };
+        return new EventRowControls { Root = root, TitleBlock = titleBlock, TimeBlock = timeBlock, ProgressBar = progress };
     }
 
-    private void UpdateDisplay()
-    {
-        var now = _exactTimeService.GetCurrentLocalDateTime();
-
-        for (int i = 0; i < _todayEvents.Count; i++)
-        {
-            var evt = _todayEvents[i];
-            if (!_rowControls.TryGetValue(evt, out var ctrl)) continue;
-
-            var isPast = evt.End <= now;
-            var isCurrent = evt.Start <= now && now < evt.End;
-
-            var totalSec = (evt.End - evt.Start).TotalSeconds;
-            var elapsedSec = (now - evt.Start).TotalSeconds;
-            var leftSec = (evt.End - now).TotalSeconds;
-
-            // 透明度 & 背景
-            ctrl.Root.Opacity = isCurrent ? 1.0 : (isPast ? 0.35 : 0.55);
-            if (isCurrent)
-            {
-                var appResources = Application.Current?.Resources;
-                if (appResources?.TryGetValue("MaterialDesignPaperSecondaryBrush", out var bg) == true && bg is Avalonia.Media.IBrush brush)
-                    ctrl.Root.Background = brush;
-                else
-                    ctrl.Root.Background = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.FromRgb(0x55, 0x55, 0x55), 0.08);
-            }
-            else
-            {
-                ctrl.Root.Background = null;
-            }
-
-            // 进度条
-            ctrl.ProgressBar.IsVisible = isCurrent && S.ShowProgressBar;
-            ctrl.ProgressBar.Value = isCurrent && totalSec > 0 ? Math.Clamp(elapsedSec / totalSec, 0, 1) : (isPast ? 1 : 0);
-
-            // 额外信息：当前事件根据设置显示，其他只显示开始时间
-            if (isCurrent)
-            {
-                ctrl.TimeBlock.Text = S.ExtraInfoType switch
-                {
-                    0 => $"{evt.Start:HH:mm}-{evt.End:HH:mm}",
-                    1 => $"-{Fmt(new TimeSpan().Add(TimeSpan.FromSeconds(elapsedSec)))}",
-                    2 => $"-{Fmt(new TimeSpan().Add(TimeSpan.FromSeconds(leftSec)))}",
-                    3 => Fmt(evt.End - evt.Start),
-                    4 => totalSec > 0 ? $"-{elapsedSec / totalSec:P0}" : "100%",
-                    _ => $"{evt.Start:HH:mm}-{evt.End:HH:mm}"
-                };
-            }
-            else
-            {
-                ctrl.TimeBlock.Text = $"{evt.Start:HH:mm}";
-            }
-        }
-    }
-
-    private static string Fmt(TimeSpan ts)
-    {
-        if (ts.TotalSeconds < 0) return "0:00";
-        return ts.TotalHours >= 1
-            ? $"{(int)ts.TotalHours:D2}:{ts.Minutes:D2}:{ts.Seconds:D2}"
-            : $"{ts.Minutes:D2}:{ts.Seconds:D2}";
-    }
-
-    ~IcalComponent() { _timer?.Stop(); }
+    ~IcalComponent() { }
 
     public new event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string? p = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(p));
+    protected bool SetField<T>(ref T f, T v, [CallerMemberName] string? p = null) { if (EqualityComparer<T>.Default.Equals(f, v)) return false; f = v; OnPropertyChanged(p); return true; }
 }
 
 internal class EventRowControls

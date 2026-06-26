@@ -37,6 +37,15 @@
                 <NumericUpDown x:Name="NumSpacing" Minimum="0" Maximum="3" Increment="0.1" FormatString="F1" Width="100"/>
             </StackPanel>
 
+            <StackPanel Spacing="4">
+                <TextBlock Text="显示明天日程"/>
+                <ComboBox x:Name="CmbTomorrowMode">
+                    <ComboBoxItem Content="不显示"/>
+                    <ComboBoxItem Content="占位时显示"/>
+                    <ComboBoxItem Content="始终显示"/>
+                </ComboBox>
+            </StackPanel>
+
             <CheckBox x:Name="ChkPlaceholder" Content="无日程时显示占位文本"/>
 
             <StackPanel Spacing="4" x:Name="PnlNoEvents">
