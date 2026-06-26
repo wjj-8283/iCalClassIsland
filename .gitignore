@@ -55,3 +55,9 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+# ci的文档
+documents/
+
+# cipx文件夹
+cipx/

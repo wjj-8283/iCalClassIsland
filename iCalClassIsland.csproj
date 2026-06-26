@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0-windows</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <NoWarn>$(NoWarn);AVLN3001</NoWarn>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <ClassIslandPluginSdkVersion>1.7.106.2-dev-v2</ClassIslandPluginSdkVersion>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Remove="documents\**" />
+        <Compile Remove="bin\**" />
+        <Compile Remove="obj\**" />
+        <EmbeddedResource Remove="documents\**" />
+        <EmbeddedResource Remove="bin\**" />
+        <EmbeddedResource Remove="obj\**" />
+        <None Remove="documents\**" />
+        <None Remove="bin\**" />
+        <None Remove="obj\**" />
+        <AvaloniaXaml Remove="documents\**" />
+        <AvaloniaXaml Remove="bin\**" />
+        <AvaloniaXaml Remove="obj\**" />
+        <Content Remove="documents\**" />
+        <Content Remove="bin\**" />
+        <Content Remove="obj\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="ClassIsland.PluginSdk" Version="$(ClassIslandPluginSdkVersion)">
+            <ExcludeAssets>runtime; native</ExcludeAssets>
+        </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Update="manifest.yml">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="README.md">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="icon.png">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+
+</Project>

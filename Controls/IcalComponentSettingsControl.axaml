@@ -1,0 +1,52 @@
+<ci:ComponentBase x:Class="iCalClassIsland.Controls.IcalComponentSettingsControl"
+                  x:TypeArguments="models:IcalComponentSettings"
+                  xmlns="https://github.com/avaloniaui"
+                  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                  xmlns:ci="http://classisland.tech/schemas/xaml/core"
+                  xmlns:models="clr-namespace:iCalClassIsland.Models"
+                  x:Name="SettingsRoot">
+    <ScrollViewer>
+        <StackPanel Spacing="8" Margin="4 8">
+            <TextBlock Text="iCal 日程组件设置" FontWeight="Bold" FontSize="16" Margin="0 0 0 8"/>
+
+            <StackPanel Spacing="4">
+                <TextBlock Text="额外信息类型"/>
+                <ComboBox x:Name="CmbExtraInfo">
+                    <ComboBoxItem Content="时间范围 (09:00-10:00)"/>
+                    <ComboBoxItem Content="已过时间"/>
+                    <ComboBoxItem Content="剩余时间"/>
+                    <ComboBoxItem Content="事件时长"/>
+                    <ComboBoxItem Content="完成百分比"/>
+                </ComboBox>
+            </StackPanel>
+
+            <StackPanel Spacing="4">
+                <CheckBox x:Name="ChkCountdown" Content="启用倒计时"/>
+                <StackPanel Orientation="Horizontal" Spacing="8" x:Name="PnlCountdownSec">
+                    <TextBlock Text="倒计时阈值（秒）:" VerticalAlignment="Center"/>
+                    <NumericUpDown x:Name="NumCountdownSec" Minimum="1" Maximum="3600" Width="100"/>
+                </StackPanel>
+            </StackPanel>
+
+            <CheckBox x:Name="ChkProgress" Content="显示进度条"/>
+
+            <CheckBox x:Name="ChkHideFinished" Content="隐藏已结束的事件"/>
+
+            <StackPanel Spacing="4">
+                <TextBlock Text="组件间距缩放"/>
+                <NumericUpDown x:Name="NumSpacing" Minimum="0" Maximum="3" Increment="0.1" FormatString="F1" Width="100"/>
+            </StackPanel>
+
+            <CheckBox x:Name="ChkPlaceholder" Content="无日程时显示占位文本"/>
+
+            <StackPanel Spacing="4" x:Name="PnlNoEvents">
+                <TextBlock Text="无日程文本"/>
+                <TextBox x:Name="TxtNoEvents" Watermark="今天没有日程。"/>
+            </StackPanel>
+            <StackPanel Spacing="4" x:Name="PnlAllEnded">
+                <TextBlock Text="全部结束文本"/>
+                <TextBox x:Name="TxtAllEnded" Watermark="今日日程已全部结束。"/>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</ci:ComponentBase>

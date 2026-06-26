@@ -1,0 +1,19 @@
+<ci:ComponentBase x:Class="iCalClassIsland.Controls.IcalComponent"
+                  x:TypeArguments="models:IcalComponentSettings"
+                  xmlns="https://github.com/avaloniaui"
+                  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                  xmlns:ci="http://classisland.tech/schemas/xaml/core"
+                  xmlns:local="clr-namespace:iCalClassIsland.Controls"
+                  xmlns:models="clr-namespace:iCalClassIsland.Models"
+                  x:Name="IcalComponentRoot">
+    <Grid>
+        <!-- 事件行：Grid 动态添加列 -->
+        <Grid x:Name="EventRow" VerticalAlignment="Stretch"/>
+        <!-- 占位文本 -->
+        <TextBlock x:Name="Placeholder"
+                   VerticalAlignment="Center"
+                   HorizontalAlignment="Center"
+                   Foreground="{DynamicResource MaterialDesignBodySecondaryBrush}"
+                   FontSize="{DynamicResource MainWindowBodyFontSize}"/>
+    </Grid>
+</ci:ComponentBase>

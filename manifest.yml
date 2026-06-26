@@ -1,0 +1,8 @@
+id: iCalClassIsland
+name: iCal 日程
+description: 从 iCal 文件加载当天的日程并显示在主界面上，支持实时进度显示。
+entranceAssembly: "iCalClassIsland.dll"
+url: https://github.com/wjj-8283/iCalClassIsland
+version: 1.0.0.0
+apiVersion: 2.0.0.0
+author: wjj-8283
