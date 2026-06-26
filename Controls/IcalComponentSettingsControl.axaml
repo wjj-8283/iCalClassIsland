@@ -3,59 +3,105 @@
                   xmlns="https://github.com/avaloniaui"
                   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                   xmlns:ci="http://classisland.tech/schemas/xaml/core"
+                  xmlns:fa="clr-namespace:FluentAvalonia.UI.Controls;assembly=FluentAvalonia"
                   xmlns:models="clr-namespace:iCalClassIsland.Models"
                   x:Name="SettingsRoot">
     <ScrollViewer>
-        <StackPanel Spacing="8" Margin="4 8">
-            <TextBlock Text="iCal 日程组件设置" FontWeight="Bold" FontSize="16" Margin="0 0 0 8"/>
+        <StackPanel Classes="settings-container" Spacing="12">
 
-            <StackPanel Spacing="4">
-                <TextBlock Text="额外信息类型"/>
-                <ComboBox x:Name="CmbExtraInfo">
-                    <ComboBoxItem Content="时间范围 (09:00-10:00)"/>
-                    <ComboBoxItem Content="已过时间"/>
-                    <ComboBoxItem Content="剩余时间"/>
-                    <ComboBoxItem Content="事件时长"/>
-                    <ComboBoxItem Content="完成百分比"/>
-                </ComboBox>
-            </StackPanel>
+            <ci:IconText Glyph="&#xEFBF;" Text="显示" Margin="0 0 0 4"/>
 
-            <StackPanel Spacing="4">
-                <CheckBox x:Name="ChkCountdown" Content="启用倒计时"/>
-                <StackPanel Orientation="Horizontal" Spacing="8" x:Name="PnlCountdownSec">
-                    <TextBlock Text="倒计时阈值（秒）:" VerticalAlignment="Center"/>
-                    <NumericUpDown x:Name="NumCountdownSec" Minimum="1" Maximum="3600" Width="100"/>
-                </StackPanel>
-            </StackPanel>
+            <fa:SettingsExpander IconSource="{ci:FluentIconSource &#xE460;}"
+                                 Header="额外信息类型"
+                                 Description="当前事件旁边显示的时间信息格式。">
+                <fa:SettingsExpander.Footer>
+                    <ComboBox x:Name="CmbExtraInfo" Width="220">
+                        <ComboBoxItem Content="时间范围 (09:00-10:00)"/>
+                        <ComboBoxItem Content="已过时间"/>
+                        <ComboBoxItem Content="剩余时间"/>
+                        <ComboBoxItem Content="事件时长"/>
+                        <ComboBoxItem Content="完成百分比"/>
+                    </ComboBox>
+                </fa:SettingsExpander.Footer>
+            </fa:SettingsExpander>
 
-            <CheckBox x:Name="ChkProgress" Content="显示进度条"/>
+            <fa:SettingsExpander IconSource="{ci:FluentIconSource &#xE4C4;}"
+                                 Header="倒计时"
+                                 Description="剩余时间低于阈值时切换为倒计时显示。">
+                <fa:SettingsExpander.Footer>
+                    <StackPanel Spacing="8">
+                        <CheckBox x:Name="ChkCountdown" Content="启用倒计时"/>
+                        <StackPanel Orientation="Horizontal" Spacing="8" x:Name="PnlCountdownSec"
+                                    IsVisible="{Binding #ChkCountdown.IsChecked}">
+                            <TextBlock Text="倒计时阈值（秒）:" VerticalAlignment="Center"/>
+                            <NumericUpDown x:Name="NumCountdownSec" Minimum="1" Maximum="3600" Width="100"/>
+                        </StackPanel>
+                    </StackPanel>
+                </fa:SettingsExpander.Footer>
+            </fa:SettingsExpander>
 
-            <CheckBox x:Name="ChkHideFinished" Content="隐藏已结束的事件"/>
+            <fa:SettingsExpander IconSource="{ci:FluentIconSource &#xE1A0;}"
+                                 Header="明天日程"
+                                 Description="在今日无事件或全部结束后显示第二天的日程。">
+                <fa:SettingsExpander.Footer>
+                    <ComboBox x:Name="CmbTomorrowMode" Width="180">
+                        <ComboBoxItem Content="不显示"/>
+                        <ComboBoxItem Content="占位时显示"/>
+                        <ComboBoxItem Content="始终显示"/>
+                    </ComboBox>
+                </fa:SettingsExpander.Footer>
+            </fa:SettingsExpander>
 
-            <StackPanel Spacing="4">
-                <TextBlock Text="组件间距缩放"/>
-                <NumericUpDown x:Name="NumSpacing" Minimum="0" Maximum="3" Increment="0.1" FormatString="F1" Width="100"/>
-            </StackPanel>
+            <fa:SettingsExpander IconSource="{ci:FluentIconSource &#xF22A;}"
+                                 Header="进度条"
+                                 Description="当前事件底部显示进度条。">
+                <fa:SettingsExpander.Footer>
+                    <CheckBox x:Name="ChkProgress" Content="显示进度条"/>
+                </fa:SettingsExpander.Footer>
+            </fa:SettingsExpander>
 
-            <StackPanel Spacing="4">
-                <TextBlock Text="显示明天日程"/>
-                <ComboBox x:Name="CmbTomorrowMode">
-                    <ComboBoxItem Content="不显示"/>
-                    <ComboBoxItem Content="占位时显示"/>
-                    <ComboBoxItem Content="始终显示"/>
-                </ComboBox>
-            </StackPanel>
+            <fa:SettingsExpander IconSource="{ci:FluentIconSource &#xE4C8;}"
+                                 Header="隐藏已结束"
+                                 Description="自动隐藏已经结束的事件。">
+                <fa:SettingsExpander.Footer>
+                    <CheckBox x:Name="ChkHideFinished" Content="隐藏已结束的事件"/>
+                </fa:SettingsExpander.Footer>
+            </fa:SettingsExpander>
 
-            <CheckBox x:Name="ChkPlaceholder" Content="无日程时显示占位文本"/>
+            <fa:SettingsExpander IconSource="{ci:FluentIconSource &#xF430;}"
+                                 Header="组件间距"
+                                 Description="调整事件之间的间距缩放比例。">
+                <fa:SettingsExpander.Footer>
+                    <NumericUpDown x:Name="NumSpacing" Minimum="0" Maximum="3"
+                                   Increment="0.1" FormatString="F1" Width="100"/>
+                </fa:SettingsExpander.Footer>
+            </fa:SettingsExpander>
 
-            <StackPanel Spacing="4" x:Name="PnlNoEvents">
-                <TextBlock Text="无日程文本"/>
-                <TextBox x:Name="TxtNoEvents" Watermark="今天没有日程。"/>
-            </StackPanel>
-            <StackPanel Spacing="4" x:Name="PnlAllEnded">
-                <TextBlock Text="全部结束文本"/>
-                <TextBox x:Name="TxtAllEnded" Watermark="今日日程已全部结束。"/>
-            </StackPanel>
+            <ci:IconText Glyph="&#xF271;" Text="占位文本" Margin="0 8 0 4"/>
+
+            <fa:SettingsExpander IconSource="{ci:FluentIconSource &#xF271;}"
+                                 Header="占位文本开关"
+                                 Description="无日程时是否显示占位文本。">
+                <fa:SettingsExpander.Footer>
+                    <CheckBox x:Name="ChkPlaceholder" Content="无日程时显示占位文本"/>
+                </fa:SettingsExpander.Footer>
+            </fa:SettingsExpander>
+
+            <fa:SettingsExpander IconSource="{ci:FluentIconSource &#xF465;}"
+                                 Header="无日程文本"
+                                 Description="当天没有任何日程时显示的文本。">
+                <fa:SettingsExpander.Footer>
+                    <TextBox x:Name="TxtNoEvents" Width="220" Watermark="今天没有日程。"/>
+                </fa:SettingsExpander.Footer>
+            </fa:SettingsExpander>
+
+            <fa:SettingsExpander IconSource="{ci:FluentIconSource &#xE4D2;}"
+                                 Header="全部结束文本"
+                                 Description="当天所有日程已结束时显示的文本。">
+                <fa:SettingsExpander.Footer>
+                    <TextBox x:Name="TxtAllEnded" Width="220" Watermark="今日日程已全部结束。"/>
+                </fa:SettingsExpander.Footer>
+            </fa:SettingsExpander>
         </StackPanel>
     </ScrollViewer>
 </ci:ComponentBase>

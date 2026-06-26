@@ -2,40 +2,46 @@
       xmlns="https://github.com/avaloniaui"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:ci="http://classisland.tech/schemas/xaml/core"
+      xmlns:fa="clr-namespace:FluentAvalonia.UI.Controls;assembly=FluentAvalonia"
       x:Name="SettingsPageRoot"
       TextElement.Foreground="{DynamicResource MaterialDesignBody}"
       Background="{DynamicResource MaterialDesignPaper}">
     <ScrollViewer>
-        <StackPanel Spacing="16" Margin="16">
-            <TextBlock Text="iCal 日程设置" FontWeight="Bold" FontSize="20" Margin="0 0 0 4"/>
+        <StackPanel Classes="settings-container animated-intro" Spacing="12">
 
-            <!-- iCal 文件列表 -->
-            <StackPanel Spacing="4">
-                <TextBlock Text="iCal 文件列表"/>
-                <Grid ColumnDefinitions="*,Auto">
-                    <ListBox Grid.Column="0" x:Name="FileListBox" MinHeight="80"/>
-                    <StackPanel Grid.Column="1" Margin="8 0 0 0" Spacing="4">
-                        <Button Content="添加" Click="OnAddFile" Width="60"/>
-                        <Button Content="移除" Click="OnRemoveFile" Width="60"/>
+            <ci:IconText Glyph="&#xE7C5;" Text="数据源" Margin="0 0 0 4"/>
+            <fa:SettingsExpander IconSource="{ci:FluentIconSource &#xEA2F;}"
+                                 Header="iCal 文件列表"
+                                 Description="添加一个或多个 .ics 文件，日程将自动合并并按时间排序。">
+                <fa:SettingsExpander.Footer>
+                    <StackPanel Spacing="8">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <ListBox Grid.Column="0" x:Name="FileListBox" MinHeight="60"/>
+                            <StackPanel Grid.Column="1" Margin="8 0 0 0" Spacing="4">
+                                <Button Content="添加" Click="OnAddFile" Width="60"/>
+                                <Button Content="移除" Click="OnRemoveFile" Width="60"/>
+                            </StackPanel>
+                        </Grid>
+                        <TextBlock x:Name="StatusText" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource MaterialDesignBodySecondaryBrush}"
+                                   FontSize="12"/>
                     </StackPanel>
-                </Grid>
-            </StackPanel>
+                </fa:SettingsExpander.Footer>
+            </fa:SettingsExpander>
 
-            <!-- 刷新间隔 -->
-            <StackPanel Spacing="4">
-                <TextBlock Text="自动刷新间隔（分钟）"/>
-                <NumericUpDown x:Name="NumRefreshInterval" Minimum="1" Maximum="1440" Width="120"/>
-            </StackPanel>
-
-            <!-- 状态 -->
-            <Border Background="{DynamicResource MaterialDesignPaperSecondaryBrush}" CornerRadius="8" Padding="12">
-                <StackPanel Spacing="4">
-                    <TextBlock Text="状态信息" FontWeight="Bold"/>
-                    <TextBlock x:Name="StatusText" TextWrapping="Wrap"/>
-                </StackPanel>
-            </Border>
-
-            <Button Content="立即刷新" Click="OnRefreshClick" HorizontalAlignment="Left"/>
+            <ci:IconText Glyph="&#xE1A0;" Text="刷新" Margin="0 8 0 4"/>
+            <fa:SettingsExpander IconSource="{ci:FluentIconSource &#xE809;}"
+                                 Header="自动刷新间隔"
+                                 Description="设置重新读取 iCal 文件的时间间隔。">
+                <fa:SettingsExpander.Footer>
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <NumericUpDown x:Name="NumRefreshInterval" Minimum="1" Maximum="1440" Width="100"/>
+                        <TextBlock Text="分钟" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource MaterialDesignBodySecondaryBrush}"/>
+                        <Button Content="立即刷新" Click="OnRefreshClick"/>
+                    </StackPanel>
+                </fa:SettingsExpander.Footer>
+            </fa:SettingsExpander>
         </StackPanel>
     </ScrollViewer>
 </ci:SettingsPageBase>
