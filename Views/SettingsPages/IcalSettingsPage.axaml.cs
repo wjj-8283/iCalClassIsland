@@ -1,8 +1,10 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.IO;
 using System.Reflection;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
 using ClassIsland.Core.Abstractions.Controls;
 using ClassIsland.Core.Abstractions.Services;
@@ -50,6 +52,14 @@ public partial class IcalSettingsPage : SettingsPageBase
         HashText = hash;
 
         DataContext = this;
+
+        // Load plugin icon for the about card
+        var pluginDir = Path.GetDirectoryName(assembly.Location)!;
+        var iconPath = Path.Combine(pluginDir, "icon.png");
+        if (File.Exists(iconPath))
+        {
+            AboutIcon.Source = new Bitmap(iconPath);
+        }
 
         // 绑定文件列表
         FileListBox.ItemsSource = _plugin.PluginSettings.IcalFilePaths;

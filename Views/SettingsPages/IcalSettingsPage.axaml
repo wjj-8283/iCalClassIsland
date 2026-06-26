@@ -44,8 +44,8 @@
             </fa:SettingsExpander>
 
             <ci:IconText Glyph="&#xE946;" Text="关于" Margin="0 8 0 4"/>
-            <fa:SettingsExpander IconSource="{ci:FluentIconSource &#xE9CE;}"
-                                 Header="iCal 日程插件"
+            <Image x:Name="AboutIcon" Width="72" Height="72" Margin="0 0 0 8"/>
+            <fa:SettingsExpander Header="iCal 日程插件"
                                  IsExpanded="True">
                 <fa:SettingsExpanderItem>
                     <Grid ColumnDefinitions="*,Auto">
