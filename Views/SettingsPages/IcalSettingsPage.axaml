@@ -42,6 +42,44 @@
                     </StackPanel>
                 </fa:SettingsExpander.Footer>
             </fa:SettingsExpander>
+
+            <ci:IconText Glyph="&#xE946;" Text="关于" Margin="0 8 0 4"/>
+            <fa:SettingsExpander IconSource="{ci:FluentIconSource &#xE9CE;}"
+                                 Header="iCal 日程插件"
+                                 IsExpanded="True">
+                <fa:SettingsExpanderItem>
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Grid.Column="0" Text="版本号"/>
+                        <TextBlock Grid.Column="1" Text="{Binding VersionText}"/>
+                    </Grid>
+                </fa:SettingsExpanderItem>
+                <fa:SettingsExpanderItem>
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Grid.Column="0" Text="commit hash"/>
+                        <TextBlock Grid.Column="1" Text="{Binding HashText}"/>
+                    </Grid>
+                </fa:SettingsExpanderItem>
+                <fa:SettingsExpanderItem>
+                    <fa:SettingsExpanderItem.Footer>
+                        <WrapPanel>
+                            <WrapPanel.Styles>
+                                <Style Selector="HyperlinkButton">
+                                    <Setter Property="Padding" Value="4"/>
+                                    <Setter Property="Margin" Value="0 0 8 0"/>
+                                </Style>
+                            </WrapPanel.Styles>
+                            <HyperlinkButton Click="OnOpenGitHub">GitHub 仓库</HyperlinkButton>
+                            <HyperlinkButton Click="OnOpenIssue">提交一个 Issue</HyperlinkButton>
+                            <HyperlinkButton Click="OnOpenLicense">开放源代码许可</HyperlinkButton>
+                        </WrapPanel>
+                    </fa:SettingsExpanderItem.Footer>
+                </fa:SettingsExpanderItem>
+                <fa:SettingsExpanderItem IsVisible="{Binding IsDirty}">
+                    <TextBlock Text="⚠ 当前为开发中版本，更改没有提交"
+                               FontSize="12"
+                               Foreground="{DynamicResource SystemFillColorCautionBrush}"/>
+                </fa:SettingsExpanderItem>
+            </fa:SettingsExpander>
         </StackPanel>
     </ScrollViewer>
 </ci:SettingsPageBase>

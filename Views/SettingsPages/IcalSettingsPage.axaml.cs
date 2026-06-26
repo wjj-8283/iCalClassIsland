@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.Reflection;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
@@ -16,10 +18,38 @@ public partial class IcalSettingsPage : SettingsPageBase
 {
     private readonly Plugin _plugin;
 
+    public string VersionText { get; }
+    public string HashText { get; }
+    public bool IsDirty { get; }
+
     public IcalSettingsPage()
     {
         InitializeComponent();
         _plugin = IAppHost.GetService<Plugin>()!;
+
+        // Read version info from embedded assembly metadata
+        var assembly = Assembly.GetExecutingAssembly();
+        var metadata = assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
+            .ToDictionary(a => a.Key, a => a.Value);
+
+        var rawTag = metadata.GetValueOrDefault("GitTag") ?? "unknown";
+        var hash = metadata.GetValueOrDefault("GitHash") ?? "unknown";
+        IsDirty = metadata.GetValueOrDefault("GitIsDirty") == "true";
+
+        // Parse version from git describe format: tag-N-gXXXXXXX
+        var version = rawTag;
+        var gIndex = rawTag.LastIndexOf("-g");
+        if (gIndex > 0)
+        {
+            var tagWithCommits = rawTag[..gIndex];       // "tag-N"
+            var dashIndex = tagWithCommits.LastIndexOf('-');
+            version = dashIndex > 0 ? tagWithCommits[..dashIndex] : tagWithCommits;
+        }
+
+        VersionText = version;
+        HashText = hash;
+
+        DataContext = this;
 
         // 绑定文件列表
         FileListBox.ItemsSource = _plugin.PluginSettings.IcalFilePaths;
@@ -100,4 +130,13 @@ public partial class IcalSettingsPage : SettingsPageBase
             msg += $"\n未找到: {string.Join(", ", missing.Select(Path.GetFileName))}";
         StatusText.Text = msg;
     }
+
+    private static void OnOpenGitHub(object? s, RoutedEventArgs e) =>
+        Process.Start(new ProcessStartInfo("https://github.com/wjj-8283/iCalClassIsland") { UseShellExecute = true });
+
+    private static void OnOpenIssue(object? s, RoutedEventArgs e) =>
+        Process.Start(new ProcessStartInfo("https://github.com/wjj-8283/iCalClassIsland/issues/new") { UseShellExecute = true });
+
+    private static void OnOpenLicense(object? s, RoutedEventArgs e) =>
+        Process.Start(new ProcessStartInfo("https://github.com/wjj-8283/iCalClassIsland/blob/main/LICENSE") { UseShellExecute = true });
 }
