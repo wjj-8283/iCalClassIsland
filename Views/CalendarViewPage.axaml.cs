@@ -70,11 +70,10 @@ public partial class CalendarViewPage : SettingsPageBase
         if (date.Date == today) header.Foreground = Brushes.DodgerBlue;
         stack.Children.Add(header);
 
-        // 分隔线
+        // 分隔线（继承主题色）
         stack.Children.Add(new Border
         {
             Height = 1,
-            Background = Brushes.LightGray,
             Margin = new Avalonia.Thickness(0, 2)
         });
 
@@ -106,7 +105,7 @@ public partial class CalendarViewPage : SettingsPageBase
                 TextTrimming = TextTrimming.CharacterEllipsis
             };
             if (evt.End <= now)
-                titleBlock.Foreground = Brushes.Gray;
+                titleBlock.Opacity = 0.5;
             else if (evt.Start <= now && now < evt.End)
                 titleBlock.Foreground = Brushes.DodgerBlue;
             item.Children.Add(titleBlock);
@@ -115,18 +114,20 @@ public partial class CalendarViewPage : SettingsPageBase
 
         if (dayEvents.Count == 0)
         {
-            stack.Children.Add(new TextBlock
+            var noEvents = new TextBlock
             {
                 Text = "无日程",
                 FontSize = 16,
-                Foreground = Brushes.LightGray,
                 HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center
-            });
+            };
+            noEvents.Opacity = 0.5;
+            stack.Children.Add(noEvents);
         }
 
         cell.Child = stack;
         return cell;
     }
+
 
     private void OnPrevWeek(object? s, RoutedEventArgs e)
     {

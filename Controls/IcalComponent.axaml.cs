@@ -187,10 +187,14 @@ public partial class IcalComponent : ComponentBase<IcalComponentSettings>
         EventRow.ColumnDefinitions.Clear();
 
         var events = _showingTomorrow ? _tomorrowEvents : _todayEvents;
+        var spacing = S.ScheduleSpacing;
         for (int i = 0; i < events.Count; i++)
         {
             var ctrl = BuildEventRow(events[i]);
             _rowControls[events[i]] = ctrl;
+            // 应用间距设置：默认 1.0 对应 4px，按比例缩放
+            var margin = 4.0 * spacing;
+            ctrl.Root.Margin = new Thickness(i == 0 ? 0 : margin, 0, 0, 0);
             EventRow.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
             Grid.SetColumn(ctrl.Root, i);
             EventRow.Children.Add(ctrl.Root);
@@ -221,13 +225,8 @@ public partial class IcalComponent : ComponentBase<IcalComponentSettings>
             var elapsedSec = (now - evt.Start).TotalSeconds;
             var leftSec = (evt.End - now).TotalSeconds;
 
-            ctrl.Root.Opacity = 1.0;
-            ctrl.TitleBlock.Foreground = isCurrent
-                ? (Application.Current?.Resources.TryGetValue("MaterialDesignBodyBrush", out var f) == true && f is IBrush b ? b : Brushes.Black)
-                : (isPast ? Brushes.Gray : Brushes.Black);
-            ctrl.TimeBlock.Foreground = isCurrent
-                ? (Application.Current?.Resources.TryGetValue("MaterialDesignBodyBrush", out var fs) == true && fs is IBrush bs ? bs : Brushes.Black)
-                : (isPast ? Brushes.Gray : Brushes.Black);
+            // 不设 Foreground 继承主题色，已结束事件半透明区分
+            ctrl.Root.Opacity = isPast ? 0.5 : 1.0;
             if (isCurrent)
             {
                 var appResources = Application.Current?.Resources;
@@ -311,6 +310,14 @@ public partial class IcalComponent : ComponentBase<IcalComponentSettings>
         root.Children.Add(canvas);
 
         return new EventRowControls { Root = root, TitleBlock = titleBlock, TimeBlock = timeBlock, ProgressBar = progress };
+    }
+
+    private static void SetDimColor(TextBlock tb, bool dim)
+    {
+        if (dim)
+            tb.Classes.Add("l-secondary");
+        else
+            tb.Classes.Remove("l-secondary");
     }
 
     ~IcalComponent() { }
