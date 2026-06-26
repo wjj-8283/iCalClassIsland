@@ -117,11 +117,12 @@ public partial class IcalComponent : ComponentBase<IcalComponentSettings>
         {
             var svc = IAppHost.TryGetService<IcalService>();
             var p = IAppHost.TryGetService<Plugin>()?.PluginSettings;
-            if (svc != null && p != null && !string.IsNullOrWhiteSpace(p.IcalFilePath))
+            var paths = p?.IcalFilePaths ?? [];
+            if (svc != null && paths.Count > 0)
             {
-                _todayEvents = svc.GetTodayEvents(p.IcalFilePath, now);
+                _todayEvents = svc.GetTodayEventsMerged(paths, now);
                 var tomorrow = now.Date.AddDays(1);
-                _tomorrowEvents = svc.GetEvents(p.IcalFilePath, tomorrow, tomorrow.AddDays(1));
+                _tomorrowEvents = svc.GetEventsMerged(paths, tomorrow, tomorrow.AddDays(1));
             }
             else { _todayEvents = []; _tomorrowEvents = []; }
         }
@@ -144,8 +145,9 @@ public partial class IcalComponent : ComponentBase<IcalComponentSettings>
             EventRow.IsVisible = false;
             Placeholder.IsVisible = true;
             var p = IAppHost.TryGetService<Plugin>()?.PluginSettings;
-            if (p != null && !string.IsNullOrWhiteSpace(p.IcalFilePath) && !File.Exists(p.IcalFilePath))
-                Placeholder.Text = $"找不到文件: {Path.GetFileName(p.IcalFilePath)}";
+            var missing = p?.IcalFilePaths.Where(f => !File.Exists(f)).ToList();
+            if (missing != null && missing.Count > 0)
+                Placeholder.Text = $"找不到文件: {Path.GetFileName(missing[0])}";
             else
                 Placeholder.Text = S.ShowPlaceholderOnEmpty ? S.PlaceholderTextNoEvents : "";
         }
@@ -207,6 +209,14 @@ public partial class IcalComponent : ComponentBase<IcalComponentSettings>
 
             var isPast = evt.End <= now;
             var isCurrent = evt.Start <= now && now < evt.End;
+
+            // 隐藏已结束事件
+            if (S.HideFinishedEvents && isPast)
+            {
+                ctrl.Root.IsVisible = false;
+                continue;
+            }
+            ctrl.Root.IsVisible = true;
             var totalSec = (evt.End - evt.Start).TotalSeconds;
             var elapsedSec = (now - evt.Start).TotalSeconds;
             var leftSec = (evt.End - now).TotalSeconds;

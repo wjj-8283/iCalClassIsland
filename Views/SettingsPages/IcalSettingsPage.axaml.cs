@@ -1,5 +1,4 @@
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
+using System.Collections.ObjectModel;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
@@ -12,71 +11,31 @@ using iCalClassIsland.Services;
 
 namespace iCalClassIsland.Views.SettingsPages;
 
-/// <summary>
-/// iCal 插件设置页面
-/// </summary>
 [SettingsPageInfo("ical-classisland.settings", "iCal 日程", category: SettingsPageCategory.External)]
-public partial class IcalSettingsPage : SettingsPageBase, INotifyPropertyChanged
+public partial class IcalSettingsPage : SettingsPageBase
 {
     private readonly Plugin _plugin;
-    private string _icalFilePath = "";
-    private int _refreshIntervalMinutes = 5;
-    private string _statusMessage = "就绪";
-
-    public string IcalFilePath
-    {
-        get => _icalFilePath;
-        set
-        {
-            if (value == _icalFilePath) return;
-            _icalFilePath = value;
-            OnPropertyChanged();
-            _plugin.PluginSettings.IcalFilePath = value;
-            UpdateStatus();
-        }
-    }
-
-    public int RefreshIntervalMinutes
-    {
-        get => _refreshIntervalMinutes;
-        set
-        {
-            if (value == _refreshIntervalMinutes) return;
-            _refreshIntervalMinutes = value;
-            OnPropertyChanged();
-            _plugin.PluginSettings.RefreshIntervalMinutes = value;
-        }
-    }
-
-    public string StatusMessage
-    {
-        get => _statusMessage;
-        set
-        {
-            if (value == _statusMessage) return;
-            _statusMessage = value;
-            OnPropertyChanged();
-        }
-    }
 
     public IcalSettingsPage()
     {
-        DataContext = this;
         InitializeComponent();
-
         _plugin = IAppHost.GetService<Plugin>()!;
 
-        // 从插件设置加载初始值
-        _icalFilePath = _plugin.PluginSettings.IcalFilePath;
-        _refreshIntervalMinutes = _plugin.PluginSettings.RefreshIntervalMinutes;
+        // 绑定文件列表
+        FileListBox.ItemsSource = _plugin.PluginSettings.IcalFilePaths;
+
+        // 刷新间隔
+        NumRefreshInterval.Value = _plugin.PluginSettings.RefreshIntervalMinutes;
+        NumRefreshInterval.ValueChanged += (_, _) =>
+            _plugin.PluginSettings.RefreshIntervalMinutes = (int)(NumRefreshInterval.Value ?? 5);
+
+        // 列表变更监听
+        _plugin.PluginSettings.IcalFilePaths.CollectionChanged += (_, _) => _plugin.NotifyConfigChanged();
 
         UpdateStatus();
     }
 
-    /// <summary>
-    /// 浏览 iCal 文件
-    /// </summary>
-    private async void OnBrowseClick(object? sender, RoutedEventArgs e)
+    private async void OnAddFile(object? s, RoutedEventArgs e)
     {
         var topLevel = TopLevel.GetTopLevel(this);
         if (topLevel == null) return;
@@ -84,77 +43,61 @@ public partial class IcalSettingsPage : SettingsPageBase, INotifyPropertyChanged
         var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
             Title = "选择 iCal 文件",
-            AllowMultiple = false,
+            AllowMultiple = true,
             FileTypeFilter =
             [
-                new FilePickerFileType("iCal 文件")
-                {
-                    Patterns = ["*.ics", "*.ical", "*.ifb"]
-                },
-                new FilePickerFileType("所有文件")
-                {
-                    Patterns = ["*.*"]
-                }
+                new FilePickerFileType("iCal 文件") { Patterns = ["*.ics", "*.ical", "*.ifb"] },
+                new FilePickerFileType("所有文件") { Patterns = ["*.*"] }
             ]
         });
 
-        if (files.Count > 0)
+        foreach (var f in files)
         {
-            IcalFilePath = files[0].Path.LocalPath;
-            await _plugin.RefreshAsync();
-            UpdateStatus();
+            var path = f.Path.LocalPath;
+            if (!_plugin.PluginSettings.IcalFilePaths.Contains(path))
+                _plugin.PluginSettings.IcalFilePaths.Add(path);
         }
+        if (files.Count > 0) { await _plugin.RefreshAsync(); UpdateStatus(); }
     }
 
-    /// <summary>
-    /// 手动刷新
-    /// </summary>
-    private async void OnRefreshClick(object? sender, RoutedEventArgs e)
+    private void OnRemoveFile(object? s, RoutedEventArgs e)
     {
-        try
-        {
-            StatusMessage = "正在刷新...";
-            await _plugin.RefreshAsync();
-            UpdateStatus();
-        }
-        catch (Exception ex)
-        {
-            StatusMessage = $"刷新失败: {ex.Message}";
-        }
+        var selected = FileListBox.SelectedItem as string;
+        if (selected != null)
+            _plugin.PluginSettings.IcalFilePaths.Remove(selected);
+        UpdateStatus();
     }
 
-    /// <summary>
-    /// 更新状态信息
-    /// </summary>
+    private async void OnRefreshClick(object? s, RoutedEventArgs e)
+    {
+        StatusText.Text = "正在刷新...";
+        await _plugin.RefreshAsync();
+        UpdateStatus();
+    }
+
     private void UpdateStatus()
     {
-        if (string.IsNullOrWhiteSpace(IcalFilePath))
+        var paths = _plugin.PluginSettings.IcalFilePaths;
+        if (paths.Count == 0)
         {
-            StatusMessage = "请先配置 iCal 文件路径。";
+            StatusText.Text = "请添加至少一个 iCal 文件。";
+            return;
         }
-        else if (!File.Exists(IcalFilePath))
-        {
-            StatusMessage = $"文件不存在: {IcalFilePath}";
-        }
-        else
-        {
-            var icalService = IAppHost.TryGetService<IcalService>();
-            if (icalService != null)
-            {
-                var timeService = IAppHost.TryGetService<IExactTimeService>();
-                var now = timeService?.GetCurrentLocalDateTime() ?? DateTime.Now;
-                var events = icalService.GetTodayEvents(IcalFilePath, now);
-                StatusMessage = $"已加载，当天共 {events.Count} 个非全天事件。文件: {IcalFilePath}";
-            }
-        }
-    }
 
-    // ---- INotifyPropertyChanged ----
+        var missing = paths.Where(f => !File.Exists(f)).ToList();
+        var valid = paths.Where(File.Exists).ToList();
 
-    public new event PropertyChangedEventHandler? PropertyChanged;
+        var svc = IAppHost.TryGetService<IcalService>();
+        var ts = IAppHost.TryGetService<IExactTimeService>();
+        var now = ts?.GetCurrentLocalDateTime() ?? DateTime.Now;
 
-    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-    {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        int total = 0;
+        foreach (var f in valid)
+            total += svc?.GetTodayEvents(f, now).Count ?? 0;
+
+        var msg = $"共 {paths.Count} 个文件，当天 {total} 个事件。";
+        if (missing.Count > 0)
+            msg += $"\n未找到: {string.Join(", ", missing.Select(Path.GetFileName))}";
+        StatusText.Text = msg;
     }
 }

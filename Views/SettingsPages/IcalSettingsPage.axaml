@@ -1,62 +1,41 @@
 <ci:SettingsPageBase x:Class="iCalClassIsland.Views.SettingsPages.IcalSettingsPage"
       xmlns="https://github.com/avaloniaui"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-      xmlns:local="clr-namespace:iCalClassIsland.Views.SettingsPages"
       xmlns:ci="http://classisland.tech/schemas/xaml/core"
-      xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-      mc:Ignorable="d"
-      d:DesignHeight="400" d:DesignWidth="600"
       x:Name="SettingsPageRoot"
       TextElement.Foreground="{DynamicResource MaterialDesignBody}"
       Background="{DynamicResource MaterialDesignPaper}">
     <ScrollViewer>
         <StackPanel Spacing="16" Margin="16">
-            <TextBlock Text="iCal 日程设置"
-                       FontWeight="Bold"
-                       FontSize="20"
-                       Margin="0 0 0 4"/>
+            <TextBlock Text="iCal 日程设置" FontWeight="Bold" FontSize="20" Margin="0 0 0 4"/>
 
-            <!-- iCal 文件路径 -->
+            <!-- iCal 文件列表 -->
             <StackPanel Spacing="4">
-                <TextBlock Text="iCal 文件路径"/>
+                <TextBlock Text="iCal 文件列表"/>
                 <Grid ColumnDefinitions="*,Auto">
-                    <TextBox Grid.Column="0"
-                             Text="{Binding IcalFilePath}"
-                             Watermark="选择或输入 .ics 文件的路径"
-                             IsReadOnly="False"/>
-                    <Button Grid.Column="1"
-                            Margin="8 0 0 0"
-                            Content="浏览..."
-                            Click="OnBrowseClick"/>
+                    <ListBox Grid.Column="0" x:Name="FileListBox" MinHeight="80"/>
+                    <StackPanel Grid.Column="1" Margin="8 0 0 0" Spacing="4">
+                        <Button Content="添加" Click="OnAddFile" Width="60"/>
+                        <Button Content="移除" Click="OnRemoveFile" Width="60"/>
+                    </StackPanel>
                 </Grid>
             </StackPanel>
 
             <!-- 刷新间隔 -->
             <StackPanel Spacing="4">
                 <TextBlock Text="自动刷新间隔（分钟）"/>
-                <NumericUpDown Value="{Binding RefreshIntervalMinutes}"
-                               Minimum="1" Maximum="1440"
-                               Width="120"/>
+                <NumericUpDown x:Name="NumRefreshInterval" Minimum="1" Maximum="1440" Width="120"/>
             </StackPanel>
 
-            <!-- 状态信息 -->
-            <Border Background="{DynamicResource MaterialDesignPaperSecondaryBrush}"
-                    CornerRadius="8"
-                    Padding="12">
+            <!-- 状态 -->
+            <Border Background="{DynamicResource MaterialDesignPaperSecondaryBrush}" CornerRadius="8" Padding="12">
                 <StackPanel Spacing="4">
-                    <TextBlock Text="状态信息"
-                               FontWeight="Bold"/>
-                    <TextBlock Text="{Binding StatusMessage}"
-                               TextWrapping="Wrap"/>
+                    <TextBlock Text="状态信息" FontWeight="Bold"/>
+                    <TextBlock x:Name="StatusText" TextWrapping="Wrap"/>
                 </StackPanel>
             </Border>
 
-            <!-- 手动刷新按钮 -->
-            <Button Content="立即刷新"
-                    Click="OnRefreshClick"
-                    HorizontalAlignment="Left"/>
+            <Button Content="立即刷新" Click="OnRefreshClick" HorizontalAlignment="Left"/>
         </StackPanel>
     </ScrollViewer>
 </ci:SettingsPageBase>

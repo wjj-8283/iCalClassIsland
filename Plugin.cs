@@ -40,6 +40,11 @@ public class Plugin : PluginBase
                 ConfigureFileHelper.SaveConfig(_configPath, PluginSettings);
                 ConfigChanged?.Invoke();
             };
+            PluginSettings.IcalFilePaths.CollectionChanged += (_, _) =>
+            {
+                ConfigureFileHelper.SaveConfig(_configPath, PluginSettings);
+                ConfigChanged?.Invoke();
+            };
             ConfigChanged?.Invoke();
         };
     }
@@ -51,7 +56,8 @@ public class Plugin : PluginBase
         if (service != null)
         {
             var now = timeService?.GetCurrentLocalDateTime() ?? DateTime.Now;
-            await service.RefreshAsync(PluginSettings.IcalFilePath, now);
+            foreach (var path in PluginSettings.IcalFilePaths)
+                await service.RefreshAsync(path, now);
             ConfigChanged?.Invoke();
         }
     }

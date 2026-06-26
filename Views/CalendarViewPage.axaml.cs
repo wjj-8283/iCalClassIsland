@@ -30,13 +30,13 @@ public partial class CalendarViewPage : SettingsPageBase
     {
         var plugin = IAppHost.TryGetService<Plugin>();
         var svc = IAppHost.TryGetService<IcalService>();
-        var ps = plugin?.PluginSettings;
-        if (svc == null || ps == null || string.IsNullOrWhiteSpace(ps.IcalFilePath))
+        var paths = plugin?.PluginSettings?.IcalFilePaths;
+        if (svc == null || paths == null || paths.Count == 0)
             return;
 
         var from = _weekStart.AddDays(-1);
         var to = _weekStart.AddDays(8);
-        _events = svc.GetEvents(ps.IcalFilePath, from, to);
+        _events = svc.GetEventsMerged(paths, from, to);
     }
 
     private void BuildWeek()

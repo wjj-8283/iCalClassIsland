@@ -91,6 +91,28 @@ public partial class IcalService
     }
 
     /// <summary>
+    /// 多文件合并：获取今天事件
+    /// </summary>
+    public List<IcalCalendarEvent> GetTodayEventsMerged(IEnumerable<string> paths, DateTime now)
+    {
+        var all = new List<IcalCalendarEvent>();
+        foreach (var path in paths)
+            all.AddRange(GetTodayEvents(path, now));
+        return all.OrderBy(e => e.Start).ToList();
+    }
+
+    /// <summary>
+    /// 多文件合并：获取日期范围事件
+    /// </summary>
+    public List<IcalCalendarEvent> GetEventsMerged(IEnumerable<string> paths, DateTime from, DateTime to)
+    {
+        var all = new List<IcalCalendarEvent>();
+        foreach (var path in paths)
+            all.AddRange(GetEvents(path, from, to));
+        return all.OrderBy(e => e.Start).ToList();
+    }
+
+    /// <summary>
     /// 异步刷新，强制重新读取文件
     /// </summary>
     public Task RefreshAsync(string icalFilePath, DateTime now)
