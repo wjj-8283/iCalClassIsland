@@ -1,6 +1,7 @@
 # iCalClassIsland
 
-在 [ClassIsland](https://github.com/ClassIsland/ClassIsland) 上显示来自 iCal（.ics）文件的日程安排。
+在 [ClassIsland](https://github.com/ClassIsland/ClassIsland) 上显示来自 iCal（.ics）文件的日程安排，主要用于大学生的课表。
+[!image](https://github.com/wjj-8283/iCalClassIsland/blob/main/src/Screenshot%202026-06-26%20at%205.26.39%E2%80%AFpm.png)
 
 ## 功能
 
