@@ -211,7 +211,13 @@ public partial class IcalComponent : ComponentBase<IcalComponentSettings>
             var elapsedSec = (now - evt.Start).TotalSeconds;
             var leftSec = (evt.End - now).TotalSeconds;
 
-            ctrl.Root.Opacity = isCurrent ? 1.0 : (isPast ? 0.35 : 0.55);
+            ctrl.Root.Opacity = 1.0;
+            ctrl.TitleBlock.Foreground = isCurrent
+                ? (Application.Current?.Resources.TryGetValue("MaterialDesignBodyBrush", out var f) == true && f is IBrush b ? b : Brushes.Black)
+                : (isPast ? Brushes.Gray : Brushes.Black);
+            ctrl.TimeBlock.Foreground = isCurrent
+                ? (Application.Current?.Resources.TryGetValue("MaterialDesignBodyBrush", out var fs) == true && fs is IBrush bs ? bs : Brushes.Black)
+                : (isPast ? Brushes.Gray : Brushes.Black);
             if (isCurrent)
             {
                 var appResources = Application.Current?.Resources;
@@ -229,10 +235,10 @@ public partial class IcalComponent : ComponentBase<IcalComponentSettings>
                 ? S.ExtraInfoType switch
                 {
                     0 => $"{evt.Start:HH:mm}-{evt.End:HH:mm}",
-                    1 => $"-{Fmt(TimeSpan.FromSeconds(elapsedSec))}",
+                    1 => Fmt(TimeSpan.FromSeconds(elapsedSec)),
                     2 => $"-{Fmt(TimeSpan.FromSeconds(leftSec))}",
                     3 => Fmt(evt.End - evt.Start),
-                    4 => totalSec > 0 ? $"-{elapsedSec / totalSec:P0}" : "100%",
+                    4 => totalSec > 0 ? $"{elapsedSec / totalSec:P0}" : "100%",
                     _ => $"{evt.Start:HH:mm}-{evt.End:HH:mm}"
                 }
                 : $"{evt.Start:HH:mm}";
