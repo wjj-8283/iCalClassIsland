@@ -47,7 +47,7 @@ public partial class IcalComponent : ComponentBase<IcalComponentSettings>
 
     private void OnAttached(object? s, VisualTreeAttachmentEventArgs e)
     {
-        // 订阅配置变更（设置页修改文件路径、AppStarted 加载配置后）
+        // 订阅配置变更
         var plugin = IAppHost.TryGetService<Plugin>();
         if (plugin != null) plugin.ConfigChanged += OnConfigChanged;
 

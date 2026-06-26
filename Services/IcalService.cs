@@ -67,6 +67,30 @@ public partial class IcalService
     }
 
     /// <summary>
+    /// 获取指定日期范围内的所有非全天事件
+    /// </summary>
+    public List<IcalCalendarEvent> GetEvents(string icalFilePath, DateTime from, DateTime to)
+    {
+        if (string.IsNullOrWhiteSpace(icalFilePath) || !File.Exists(icalFilePath))
+            return [];
+
+        try
+        {
+            var rawText = File.ReadAllText(icalFilePath);
+            var allEvents = ParseIcalEvents(rawText);
+            return allEvents
+                .Where(e => !e.IsAllDay && e.Start < to && e.End > from)
+                .OrderBy(e => e.Start)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "解析 iCal 文件失败: {Path}", icalFilePath);
+            return [];
+        }
+    }
+
+    /// <summary>
     /// 异步刷新，强制重新读取文件
     /// </summary>
     public Task RefreshAsync(string icalFilePath, DateTime now)

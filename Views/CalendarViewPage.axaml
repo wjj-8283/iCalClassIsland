@@ -1,0 +1,42 @@
+<ci:SettingsPageBase x:Class="iCalClassIsland.Views.CalendarViewPage"
+        xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ci="http://classisland.tech/schemas/xaml/core"
+        x:Name="PageRoot"
+        TextElement.Foreground="{DynamicResource MaterialDesignBody}"
+        Background="{DynamicResource MaterialDesignPaper}">
+    <ci:SettingsPageBase.Styles>
+        <Style Selector="Border.DayColumn">
+            <Setter Property="BorderBrush" Value="{DynamicResource MaterialDesignDividerBrush}"/>
+            <Setter Property="BorderThickness" Value="0.5"/>
+            <Setter Property="Padding" Value="4 4"/>
+        </Style>
+        <Style Selector="TextBlock.DayHeader">
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0 2"/>
+        </Style>
+        <Style Selector="TextBlock.EventItem">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+            <Setter Property="Margin" Value="0 1"/>
+        </Style>
+    </ci:SettingsPageBase.Styles>
+    <Grid RowDefinitions="Auto,*" Margin="16">
+        <!-- 周导航 -->
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0 0 0 12">
+            <Button Grid.Column="0" Content="◀ 上周" Click="OnPrevWeek" Padding="8 4"/>
+            <TextBlock Grid.Column="1" x:Name="WeekLabel"
+                       FontSize="18" FontWeight="Bold"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <Button Grid.Column="2" Content="下周 ▶" Click="OnNextWeek" Padding="8 4"/>
+        </Grid>
+
+        <!-- 周视图：7列 -->
+        <ScrollViewer Grid.Row="1">
+            <Grid x:Name="WeekGrid" ColumnDefinitions="*,*,*,*,*,*,*">
+            </Grid>
+        </ScrollViewer>
+    </Grid>
+</ci:SettingsPageBase>

@@ -8,6 +8,7 @@ using ClassIsland.Shared.Helpers;
 using iCalClassIsland.Controls;
 using iCalClassIsland.Models;
 using iCalClassIsland.Services;
+using iCalClassIsland.Views;
 using iCalClassIsland.Views.SettingsPages;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -27,6 +28,7 @@ public class Plugin : PluginBase
         services.AddSingleton<IcalService>();
         services.AddComponent<IcalComponent, IcalComponentSettingsControl>();
         services.AddSettingsPage<IcalSettingsPage>();
+        services.AddSettingsPage<CalendarViewPage>();
 
         _configPath = Path.Combine(PluginConfigFolder, "Settings.json");
 
