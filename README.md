@@ -57,3 +57,6 @@
 dotnet build                              # 编译
 dotnet publish -p:CreateCipx=true          # 打包为 .cipx 插件包
 ```
+
+## 开源协议
+本软件采用GPLv3开源，图标来自米游社
