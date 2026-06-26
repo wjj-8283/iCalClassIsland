@@ -2,7 +2,10 @@
 
 在 [ClassIsland](https://github.com/ClassIsland/ClassIsland) 上显示来自 iCal（.ics）文件的日程安排，主要用于大学生的课表。
 
-![screenshot](https://github.com/wjj-8283/iCalClassIsland/blob/main/src/Screenshot%202026-06-26%20at%205.26.39%E2%80%AFpm.png)
+浅色模式
+![screenshot](src/Screenshot_light.png)
+深色模式
+![screenshot2](src/Screenshot_dark.png)
 
 ## 功能
 
