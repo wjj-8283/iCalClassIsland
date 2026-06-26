@@ -3,9 +3,9 @@
 在 [ClassIsland](https://github.com/ClassIsland/ClassIsland) 上显示来自 iCal（.ics）文件的日程安排，主要用于大学生的课表。
 
 浅色模式
-![screenshot](src/Screenshot_light.png)
+![screenshot](src/light.png)
 深色模式
-![screenshot2](src/Screenshot_dark.png)
+![screenshot2](src/dark.png)
 
 ## 功能
 
