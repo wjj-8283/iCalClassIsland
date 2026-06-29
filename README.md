@@ -1,6 +1,7 @@
 # iCalClassIsland
 
 > 当前最新版本：1.0.1.0，如果与插件商店显示不符，说明插件商店尚未更新，请前往[Releases](https://github.com/wjj-8283/iCalClassIsland/releases)下载最新的cipx
+
 在 [ClassIsland](https://github.com/ClassIsland/ClassIsland) 上显示来自 iCal（.ics）文件的日程安排，主要用于大学生的课表。
 
 浅色模式
