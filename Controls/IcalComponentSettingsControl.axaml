@@ -77,6 +77,35 @@
                 </fa:SettingsExpander.Footer>
             </fa:SettingsExpander>
 
+            <ci:IconText Glyph="&#xE8F7;" Text="空闲标记" Margin="0 8 0 4"/>
+
+            <fa:SettingsExpander IconSource="{ci:FluentIconSource &#xE8F7;}"
+                                 Header="空闲标记开关"
+                                 Description="在日程间隙显示空闲标记。">
+                <fa:SettingsExpander.Footer>
+                    <CheckBox x:Name="ChkIdleIndicator" Content="启用空闲标记"/>
+                </fa:SettingsExpander.Footer>
+            </fa:SettingsExpander>
+
+            <fa:SettingsExpander IconSource="{ci:FluentIconSource &#xE7AD;}"
+                                 Header="空闲标记样式"
+                                 Description="选择详细组件或简化进度条。">
+                <fa:SettingsExpander.Footer>
+                    <ComboBox x:Name="CmbIdleMode" Width="180">
+                        <ComboBoxItem Content="详细组件"/>
+                        <ComboBoxItem Content="简化进度条"/>
+                    </ComboBox>
+                </fa:SettingsExpander.Footer>
+            </fa:SettingsExpander>
+
+            <fa:SettingsExpander IconSource="{ci:FluentIconSource &#xF465;}"
+                                 Header="空闲文字"
+                                 Description="空闲标记显示的文字（仅详细模式）。">
+                <fa:SettingsExpander.Footer>
+                    <TextBox x:Name="TxtIdleText" Width="220" Watermark="空闲"/>
+                </fa:SettingsExpander.Footer>
+            </fa:SettingsExpander>
+
             <ci:IconText Glyph="&#xF271;" Text="占位文本" Margin="0 8 0 4"/>
 
             <fa:SettingsExpander IconSource="{ci:FluentIconSource &#xF271;}"

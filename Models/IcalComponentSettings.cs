@@ -19,6 +19,9 @@ public class IcalComponentSettings : INotifyPropertyChanged
     private double _scheduleSpacing = 1.0;
     private bool _showExtraInfoOnTimePoint = true;
     private int _tomorrowShowMode; // 0=不显示, 1=占位时显示, 2=始终显示
+    private bool _showIdleIndicator = true;
+    private string _idleText = "空闲";
+    private int _idleIndicatorMode; // 0=详细, 1=简化
 
     public int ExtraInfoType { get => _extraInfoType; set { if (value == _extraInfoType) return; _extraInfoType = value; OnPropertyChanged(); } }
     public bool IsCountdownEnabled { get => _isCountdownEnabled; set { if (value == _isCountdownEnabled) return; _isCountdownEnabled = value; OnPropertyChanged(); } }
@@ -32,6 +35,12 @@ public class IcalComponentSettings : INotifyPropertyChanged
     public bool ShowExtraInfoOnTimePoint { get => _showExtraInfoOnTimePoint; set { if (value == _showExtraInfoOnTimePoint) return; _showExtraInfoOnTimePoint = value; OnPropertyChanged(); } }
     /// <summary>显示明天日程的模式：0=不显示, 1=今日结束后, 2=今日空时, 3=始终</summary>
     public int TomorrowShowMode { get => _tomorrowShowMode; set { if (value == _tomorrowShowMode) return; _tomorrowShowMode = value; OnPropertyChanged(); } }
+    /// <summary>在日程间隙显示空闲标记</summary>
+    public bool ShowIdleIndicator { get => _showIdleIndicator; set { if (value == _showIdleIndicator) return; _showIdleIndicator = value; OnPropertyChanged(); } }
+    /// <summary>空闲标记文字（仅详细模式）</summary>
+    public string IdleText { get => _idleText; set { if (value == _idleText) return; _idleText = value; OnPropertyChanged(); } }
+    /// <summary>空闲标记模式：0=详细组件, 1=简化竖线</summary>
+    public int IdleIndicatorMode { get => _idleIndicatorMode; set { if (value == _idleIndicatorMode) return; _idleIndicatorMode = value; OnPropertyChanged(); } }
 
     public event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));

@@ -28,6 +28,9 @@ public partial class IcalComponentSettingsControl : ComponentBase<IcalComponentS
         TxtNoEvents.Text = s.PlaceholderTextNoEvents;
         TxtAllEnded.Text = s.PlaceholderTextAllEnded;
         PnlCountdownSec.IsVisible = s.IsCountdownEnabled;
+        ChkIdleIndicator.IsChecked = s.ShowIdleIndicator;
+        CmbIdleMode.SelectedIndex = s.IdleIndicatorMode;
+        TxtIdleText.Text = s.IdleText;
 
         CmbExtraInfo.SelectionChanged += (_, _) => s.ExtraInfoType = CmbExtraInfo.SelectedIndex;
         CmbTomorrowMode.SelectionChanged += (_, _) => s.TomorrowShowMode = CmbTomorrowMode.SelectedIndex;
@@ -39,5 +42,8 @@ public partial class IcalComponentSettingsControl : ComponentBase<IcalComponentS
         ChkPlaceholder.IsCheckedChanged += (_, _) => s.ShowPlaceholderOnEmpty = ChkPlaceholder.IsChecked == true;
         TxtNoEvents.TextChanged += (_, _) => s.PlaceholderTextNoEvents = TxtNoEvents.Text ?? "";
         TxtAllEnded.TextChanged += (_, _) => s.PlaceholderTextAllEnded = TxtAllEnded.Text ?? "";
+        ChkIdleIndicator.IsCheckedChanged += (_, _) => s.ShowIdleIndicator = ChkIdleIndicator.IsChecked == true;
+        CmbIdleMode.SelectionChanged += (_, _) => s.IdleIndicatorMode = CmbIdleMode.SelectedIndex;
+        TxtIdleText.TextChanged += (_, _) => s.IdleText = TxtIdleText.Text ?? "空闲";
     }
 }
