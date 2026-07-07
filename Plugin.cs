@@ -34,6 +34,11 @@ public class Plugin : PluginBase
 
         AppBase.Current.AppStarted += (_, _) =>
         {
+            // 初始化缓存目录（用于 web ICS 文件缓存）
+            var cacheDir = Path.Combine(PluginConfigFolder, "Cache");
+            var icalService = IAppHost.TryGetService<IcalService>();
+            icalService?.InitializeCache(cacheDir);
+
             PluginSettings = ConfigureFileHelper.LoadConfig<IcalPluginSettings>(_configPath);
             PluginSettings.PropertyChanged += (_, _) =>
             {

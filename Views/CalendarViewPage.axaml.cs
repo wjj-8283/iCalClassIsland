@@ -15,6 +15,7 @@ public partial class CalendarViewPage : SettingsPageBase
 {
     private DateTime _weekStart; // 周一
     private List<IcalCalendarEvent> _events = [];
+    private int _loadVersion;
     private static readonly string[] DayHeaders = ["一", "二", "三", "四", "五", "六", "日"];
 
     public CalendarViewPage()
@@ -23,10 +24,18 @@ public partial class CalendarViewPage : SettingsPageBase
         var dayOfWeek = today.DayOfWeek == DayOfWeek.Sunday ? 6 : (int)today.DayOfWeek - 1;
         _weekStart = today.AddDays(-dayOfWeek);
         InitializeComponent();
-        Loaded += (_, _) => { LoadEvents(); BuildWeek(); };
+        Loaded += async (_, _) => await LoadAndBuildAsync();
     }
 
-    private void LoadEvents()
+    private async Task LoadAndBuildAsync()
+    {
+        var version = Interlocked.Increment(ref _loadVersion);
+        await LoadEventsAsync();
+        if (version != Volatile.Read(ref _loadVersion)) return;
+        BuildWeek();
+    }
+
+    private async Task LoadEventsAsync()
     {
         var plugin = IAppHost.TryGetService<Plugin>();
         var svc = IAppHost.TryGetService<IcalService>();
@@ -36,7 +45,7 @@ public partial class CalendarViewPage : SettingsPageBase
 
         var from = _weekStart.AddDays(-1);
         var to = _weekStart.AddDays(8);
-        _events = svc.GetEventsMerged(paths, from, to);
+        _events = await Task.Run(() => svc.GetEventsMerged(paths, from, to));
     }
 
     private void BuildWeek()
@@ -129,15 +138,15 @@ public partial class CalendarViewPage : SettingsPageBase
     }
 
 
-    private void OnPrevWeek(object? s, RoutedEventArgs e)
+    private async void OnPrevWeek(object? s, RoutedEventArgs e)
     {
         _weekStart = _weekStart.AddDays(-7);
-        LoadEvents(); BuildWeek();
+        await LoadAndBuildAsync();
     }
 
-    private void OnNextWeek(object? s, RoutedEventArgs e)
+    private async void OnNextWeek(object? s, RoutedEventArgs e)
     {
         _weekStart = _weekStart.AddDays(7);
-        LoadEvents(); BuildWeek();
+        await LoadAndBuildAsync();
     }
 }

@@ -19,7 +19,17 @@
                             <ListBox Grid.Column="0" x:Name="FileListBox" MinHeight="60"/>
                             <StackPanel Grid.Column="1" Margin="8 0 0 0" Spacing="4">
                                 <Button Content="添加" Click="OnAddFile" Width="60"/>
+                                <Button Content="添加 URL" Click="OnAddUrl" Width="60"/>
                                 <Button Content="移除" Click="OnRemoveFile" Width="60"/>
+                            </StackPanel>
+                        </Grid>
+                        <!-- Web URL 输入区域 -->
+                        <Grid x:Name="UrlInputPanel" ColumnDefinitions="*,Auto" IsVisible="False">
+                            <TextBox Grid.Column="0" x:Name="UrlTextBox" Margin="0 0 8 0"
+                                     Watermark="输入 iCal 文件的 URL（例如 GitHub Raw）"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+                                <Button Content="确定" Click="OnConfirmUrl" Width="50"/>
+                                <Button Content="取消" Click="OnCancelUrl" Width="50"/>
                             </StackPanel>
                         </Grid>
                         <TextBlock x:Name="StatusText" TextWrapping="Wrap"

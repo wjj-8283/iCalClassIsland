@@ -69,9 +69,6 @@ public partial class IcalSettingsPage : SettingsPageBase
         NumRefreshInterval.ValueChanged += (_, _) =>
             _plugin.PluginSettings.RefreshIntervalMinutes = (int)(NumRefreshInterval.Value ?? 5);
 
-        // 列表变更监听
-        _plugin.PluginSettings.IcalFilePaths.CollectionChanged += (_, _) => _plugin.NotifyConfigChanged();
-
         UpdateStatus();
     }
 
@@ -100,11 +97,80 @@ public partial class IcalSettingsPage : SettingsPageBase
         if (files.Count > 0) { await _plugin.RefreshAsync(); UpdateStatus(); }
     }
 
+    private void OnAddUrl(object? s, RoutedEventArgs e)
+    {
+        UrlInputPanel.IsVisible = true;
+        UrlTextBox.Text = "";
+        UrlTextBox.Focus();
+    }
+
+    private async void OnConfirmUrl(object? s, RoutedEventArgs e)
+    {
+        var url = UrlTextBox.Text?.Trim();
+        UrlInputPanel.IsVisible = false;
+
+        if (string.IsNullOrWhiteSpace(url))
+            return;
+
+        // 基本 URL 验证
+        if (!url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
+            !url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            StatusText.Text = "请输入有效的 HTTP/HTTPS URL。";
+            return;
+        }
+
+        if (_plugin.PluginSettings.IcalFilePaths.Contains(url))
+        {
+            StatusText.Text = "该 URL 已存在。";
+            return;
+        }
+
+        // 尝试预取并缓存
+        StatusText.Text = $"正在从 {url} 获取 iCal 文件...";
+        var svc = IAppHost.TryGetService<IcalService>();
+        if (svc != null)
+        {
+            var success = svc.TryFetchAndCache(url);
+            if (success)
+            {
+                _plugin.PluginSettings.IcalFilePaths.Add(url);
+                StatusText.Text = $"已添加 URL 并缓存成功: {url}";
+            }
+            else
+            {
+                // 即使远程不可用，也添加到列表（可以手动刷新后使用缓存）
+                _plugin.PluginSettings.IcalFilePaths.Add(url);
+                StatusText.Text = $"已添加 URL 但远程获取失败: {url}\n将尝试使用缓存数据。";
+            }
+        }
+        else
+        {
+            _plugin.PluginSettings.IcalFilePaths.Add(url);
+        }
+
+        await _plugin.RefreshAsync();
+        UpdateStatus();
+    }
+
+    private void OnCancelUrl(object? s, RoutedEventArgs e)
+    {
+        UrlInputPanel.IsVisible = false;
+    }
+
     private void OnRemoveFile(object? s, RoutedEventArgs e)
     {
         var selected = FileListBox.SelectedItem as string;
         if (selected != null)
+        {
             _plugin.PluginSettings.IcalFilePaths.Remove(selected);
+            // 如果是 web URL，清理缓存
+            if (IcalService.IsWebUrlPath(selected))
+            {
+                var svc = IAppHost.TryGetService<IcalService>();
+                svc?.RemoveCache(selected);
+            }
+        }
         UpdateStatus();
     }
 
@@ -124,21 +190,49 @@ public partial class IcalSettingsPage : SettingsPageBase
             return;
         }
 
-        var missing = paths.Where(f => !File.Exists(f)).ToList();
-        var valid = paths.Where(File.Exists).ToList();
-
         var svc = IAppHost.TryGetService<IcalService>();
         var ts = IAppHost.TryGetService<IExactTimeService>();
         var now = ts?.GetCurrentLocalDateTime() ?? DateTime.Now;
+
+        var webUrls = paths.Where(IcalService.IsWebUrlPath).ToList();
+        var localPaths = paths.Where(p => !IcalService.IsWebUrlPath(p)).ToList();
+        var missing = localPaths.Where(f => !File.Exists(f)).ToList();
+        var valid = localPaths.Where(File.Exists).ToList();
 
         int total = 0;
         foreach (var f in valid)
             total += svc?.GetTodayEvents(f, now).Count ?? 0;
 
-        var msg = $"共 {paths.Count} 个文件，当天 {total} 个事件。";
+        // 也统计 web URL 的事件
+        foreach (var url in webUrls)
+            total += svc?.GetTodayEvents(url, now).Count ?? 0;
+
+        var lines = new List<string>();
+        lines.Add($"共 {paths.Count} 个数据源，当天 {total} 个事件。");
+
         if (missing.Count > 0)
-            msg += $"\n未找到: {string.Join(", ", missing.Select(Path.GetFileName))}";
-        StatusText.Text = msg;
+            lines.Add($"⚠ 未找到本地文件: {string.Join(", ", missing.Select(Path.GetFileName))}");
+
+        // 显示每个 web URL 的状态
+        foreach (var url in webUrls)
+        {
+            var status = svc?.GetRemoteStatus(url);
+            var displayUrl = url.Length > 60 ? url[..57] + "..." : url;
+            switch (status)
+            {
+                case true:
+                    lines.Add($"✓ 远程在线: {displayUrl}");
+                    break;
+                case false:
+                    lines.Add($"⚠ 远程不可用，使用缓存: {displayUrl}");
+                    break;
+                case null:
+                    lines.Add($"○ 等待检测: {displayUrl}");
+                    break;
+            }
+        }
+
+        StatusText.Text = string.Join("\n", lines);
     }
 
     private static void OnOpenGitHub(object? s, RoutedEventArgs e) =>

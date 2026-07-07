@@ -26,6 +26,7 @@ public partial class IcalComponent : ComponentBase<IcalComponentSettings>
     private List<IcalCalendarEvent> _tomorrowEvents = [];
     private bool _showingTomorrow;
     private DateTime _lastDate;
+    private int _refreshVersion; // 用于丢弃过时的异步刷新结果
 
     private readonly Dictionary<IcalCalendarEvent, EventRowControls> _rowControls = [];
     private Grid? _idleRow;
@@ -64,7 +65,7 @@ public partial class IcalComponent : ComponentBase<IcalComponentSettings>
         if (Settings is INotifyPropertyChanged npc) npc.PropertyChanged += OnSettingsChanged;
 
         _lastDate = _exactTimeService.GetCurrentLocalDateTime().Date;
-        RefreshEvents();
+        _ = RefreshEventsAsync();
     }
 
     private void OnDetached(object? s, VisualTreeAttachmentEventArgs e)
@@ -90,53 +91,102 @@ public partial class IcalComponent : ComponentBase<IcalComponentSettings>
         if (dayChanged || _tickCounter % 600 == 0)
         {
             _lastDate = now.Date;
-            RefreshEvents();
+            _ = RefreshEventsAsync();
             return;
         }
-        if (_todayEvents.Count == 0 && _tickCounter % 20 == 0)
+        // 无事件时降低刷新频率：每 5 分钟检查一次（6000 ticks × 50ms = 300s）
+        if (_todayEvents.Count == 0 && _tickCounter % 6000 == 0)
         {
-            RefreshEvents();
+            _ = RefreshEventsAsync();
             return;
         }
         if (_todayEvents.Count > 0 || (_showingTomorrow && _tomorrowEvents.Count > 0))
         {
             UpdateDisplay();
             if (!_showingTomorrow && _todayEvents.All(e => now >= e.End))
-                RefreshEvents();
+                _ = RefreshEventsAsync();
         }
     }
 
     /// <summary>状态变化回调（放学等）</summary>
-    private void OnCurrentTimeStateChanged(object? s, EventArgs e) => RefreshEvents();
+    private void OnCurrentTimeStateChanged(object? s, EventArgs e) => _ = RefreshEventsAsync();
 
     /// <summary>时间服务变更（调试改时间）</summary>
-    private void OnTimeServiceChanged(object? s, PropertyChangedEventArgs e) => RefreshEvents();
+    private void OnTimeServiceChanged(object? s, PropertyChangedEventArgs e) => _ = RefreshEventsAsync();
 
-    private void OnConfigChanged() => Dispatcher.UIThread.Post(RefreshEvents);
-    private void OnSettingsChanged(object? s, PropertyChangedEventArgs e) => Dispatcher.UIThread.Post(RefreshEvents);
+    private CancellationTokenSource? _debounceCts;
+
+    /// <summary>防抖刷新：避免短时间内重复刷新</summary>
+    private void ScheduleRefresh()
+    {
+        _debounceCts?.Cancel();
+        _debounceCts = new CancellationTokenSource();
+        var token = _debounceCts.Token;
+        Task.Delay(300, token).ContinueWith(_ =>
+        {
+            if (!token.IsCancellationRequested)
+                _ = RefreshEventsAsync();
+        }, CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
+    }
+
+    private void OnConfigChanged() => ScheduleRefresh();
+    private void OnSettingsChanged(object? s, PropertyChangedEventArgs e) => ScheduleRefresh();
 
     // ---- 事件加载 ----
 
     private IcalComponentSettings S => Settings;
 
-    private void RefreshEvents()
+    /// <summary>
+    /// 异步刷新事件数据：I/O 在后台线程执行，避免阻塞 UI
+    /// </summary>
+    private async Task RefreshEventsAsync()
     {
+        var version = Interlocked.Increment(ref _refreshVersion);
         var now = _exactTimeService.GetCurrentLocalDateTime();
         _lastDate = now.Date;
-        try
+
+        var svc = IAppHost.TryGetService<IcalService>();
+        var paths = IAppHost.TryGetService<Plugin>()?.PluginSettings?.IcalFilePaths ?? [];
+
+        List<IcalCalendarEvent> todayEvents, tomorrowEvents;
+
+        if (svc != null && paths.Count > 0)
         {
-            var svc = IAppHost.TryGetService<IcalService>();
-            var p = IAppHost.TryGetService<Plugin>()?.PluginSettings;
-            var paths = p?.IcalFilePaths ?? [];
-            if (svc != null && paths.Count > 0)
+            try
             {
-                _todayEvents = svc.GetTodayEventsMerged(paths, now);
+                var pathsSnapshot = paths.ToList();
+                // 在后台线程执行所有 I/O 操作
+                todayEvents = await Task.Run(() => svc.GetTodayEventsMerged(pathsSnapshot, now));
+                if (version != Volatile.Read(ref _refreshVersion)) return;
                 var tomorrow = now.Date.AddDays(1);
-                _tomorrowEvents = svc.GetEventsMerged(paths, tomorrow, tomorrow.AddDays(1));
+                tomorrowEvents = await Task.Run(() => svc.GetEventsMerged(pathsSnapshot, tomorrow, tomorrow.AddDays(1)));
             }
-            else { _todayEvents = []; _tomorrowEvents = []; }
+            catch
+            {
+                if (version != Volatile.Read(ref _refreshVersion)) return;
+                todayEvents = [];
+                tomorrowEvents = [];
+            }
         }
-        catch { _todayEvents = []; _tomorrowEvents = []; }
+        else
+        {
+            todayEvents = [];
+            tomorrowEvents = [];
+        }
+
+        if (version != Volatile.Read(ref _refreshVersion)) return;
+
+        // 回到 UI 线程更新界面
+        await Dispatcher.UIThread.InvokeAsync(() => UpdateEventsUi(version, now, todayEvents, tomorrowEvents));
+    }
+
+    private void UpdateEventsUi(int version, DateTime now,
+        List<IcalCalendarEvent> todayEvents, List<IcalCalendarEvent> tomorrowEvents)
+    {
+        if (version != Volatile.Read(ref _refreshVersion)) return;
+
+        _todayEvents = todayEvents;
+        _tomorrowEvents = tomorrowEvents;
 
         var allEnded = _todayEvents.Count > 0 && _todayEvents.All(e => now >= e.End);
         var showTomorrow = ShouldShowTomorrow(allEnded) && _tomorrowEvents.Count > 0;
@@ -154,12 +204,7 @@ public partial class IcalComponent : ComponentBase<IcalComponentSettings>
             TomorrowBadge.IsVisible = false;
             EventRow.IsVisible = false;
             Placeholder.IsVisible = true;
-            var p = IAppHost.TryGetService<Plugin>()?.PluginSettings;
-            var missing = p?.IcalFilePaths.Where(f => !File.Exists(f)).ToList();
-            if (missing != null && missing.Count > 0)
-                Placeholder.Text = $"找不到文件: {Path.GetFileName(missing[0])}";
-            else
-                Placeholder.Text = S.ShowPlaceholderOnEmpty ? S.PlaceholderTextNoEvents : "";
+            Placeholder.Text = S.ShowPlaceholderOnEmpty ? S.PlaceholderTextNoEvents : "";
         }
         else if (allEnded)
         {
@@ -634,8 +679,6 @@ public partial class IcalComponent : ComponentBase<IcalComponentSettings>
         else
             tb.Classes.Remove("l-secondary");
     }
-
-    ~IcalComponent() { }
 
     public new event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string? p = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(p));

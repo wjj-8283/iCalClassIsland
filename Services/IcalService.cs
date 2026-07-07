@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.RegularExpressions;
 using iCalClassIsland.Models;
 using Microsoft.Extensions.Logging;
@@ -5,20 +7,116 @@ using Microsoft.Extensions.Logging;
 namespace iCalClassIsland.Services;
 
 /// <summary>
-/// iCal 文件解析服务，负责读取 .ics 文件并提取事件
+/// iCal 文件解析服务，负责读取 .ics 文件并提取事件。
+/// 支持本地文件路径和远程 URL（如 GitHub Raw），远程文件会自动缓存到本地。
 /// </summary>
 public partial class IcalService
 {
     private readonly ILogger<IcalService> _logger;
+    private readonly HttpClient _httpClient;
+    private string _cacheDir = "";
 
-    private List<IcalCalendarEvent>? _cachedEvents;
-    private string? _cachedFilePath;
+    /// <summary>记录每个 URL 的远程访问状态（true=远程可访问，false=不可用，null=未检测）</summary>
+    private readonly Dictionary<string, bool?> _remoteStatus = [];
+    private readonly object _statusLock = new();
+
+    /// <summary>每个数据源的原始文本缓存（按文件路径索引）</summary>
+    private readonly Dictionary<string, CachedFileData> _textCache = [];
     private DateTime _cacheDate;
-    private DateTime _lastFileWriteTime;
+
+    private sealed class CachedFileData
+    {
+        /// <summary>原始 iCal 文本</summary>
+        public string RawText { get; set; } = "";
+        /// <summary>文件最后写入时间（本地文件）或 DateTime.MinValue（web URL）</summary>
+        public DateTime LastWriteTime { get; set; }
+    }
+
+    /// <summary>
+    /// 获取数据源的原始文本。先查内存缓存，缓存未命中则从文件/URL 读取并缓存。
+    /// </summary>
+    private string? GetRawText(string path)
+    {
+        var isWeb = IsWebUrl(path);
+        var lastWrite = isWeb ? DateTime.MinValue : File.GetLastWriteTime(path);
+
+        // 日期变了，清空缓存
+        if (_cacheDate.Date != DateTime.Now.Date)
+        {
+            _textCache.Clear();
+            _cacheDate = DateTime.Now;
+        }
+
+        // 命中缓存
+        if (_textCache.TryGetValue(path, out var cached) &&
+            (isWeb || cached.LastWriteTime == lastWrite))
+        {
+            return cached.RawText;
+        }
+
+        // 获取内容
+        string? rawText;
+        if (isWeb)
+        {
+            rawText = FetchIcalContent(path);
+        }
+        else
+        {
+            try { rawText = File.ReadAllText(path); }
+            catch { rawText = null; }
+        }
+
+        if (rawText != null)
+        {
+            _textCache[path] = new CachedFileData { RawText = rawText, LastWriteTime = lastWrite };
+        }
+
+        return rawText;
+    }
 
     public IcalService(ILogger<IcalService> logger)
     {
         _logger = logger;
+        _httpClient = new HttpClient
+        {
+            Timeout = TimeSpan.FromSeconds(15)
+        };
+        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("iCalClassIsland-Plugin/1.0");
+    }
+
+    /// <summary>
+    /// 初始化缓存目录（由 Plugin 在启动时调用）
+    /// </summary>
+    public void InitializeCache(string cacheDir)
+    {
+        _cacheDir = cacheDir;
+        if (!Directory.Exists(_cacheDir))
+            Directory.CreateDirectory(_cacheDir);
+    }
+
+    /// <summary>
+    /// 判断路径是否为远程 URL
+    /// </summary>
+    private static bool IsWebUrl(string path) =>
+        path.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+        path.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// 根据 URL 计算缓存文件路径（基于 SHA256 哈希）
+    /// </summary>
+    private string GetCachePath(string url)
+    {
+        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(url))).ToLowerInvariant();
+        return Path.Combine(_cacheDir, $"{hash}.ics");
+    }
+
+    /// <summary>
+    /// 确保缓存目录存在
+    /// </summary>
+    private void EnsureCacheDir()
+    {
+        if (!Directory.Exists(_cacheDir))
+            Directory.CreateDirectory(_cacheDir);
     }
 
     /// <summary>
@@ -26,43 +124,28 @@ public partial class IcalService
     /// </summary>
     public List<IcalCalendarEvent> GetTodayEvents(string icalFilePath, DateTime now)
     {
-        if (string.IsNullOrWhiteSpace(icalFilePath) || !File.Exists(icalFilePath))
-        {
+        if (string.IsNullOrWhiteSpace(icalFilePath))
             return [];
-        }
 
-        var fileWriteTime = File.GetLastWriteTime(icalFilePath);
-
-        // 如果文件路径没变、文件没被修改、且缓存是今天的，则使用缓存
-        if (_cachedFilePath == icalFilePath &&
-            _lastFileWriteTime == fileWriteTime &&
-            _cacheDate.Date == now.Date &&
-            _cachedEvents != null)
-        {
-            return _cachedEvents;
-        }
+        if (!IsWebUrl(icalFilePath) && !File.Exists(icalFilePath))
+            return [];
 
         try
         {
-            var rawText = File.ReadAllText(icalFilePath);
+            var rawText = GetRawText(icalFilePath);
+            if (rawText == null)
+                return [];
+
             var allEvents = ParseIcalEvents(rawText);
-            var todayEvents = allEvents
+            return allEvents
                 .Where(e => !e.IsAllDay && IsEventOnDate(e, now.Date))
                 .OrderBy(e => e.Start)
                 .ToList();
-
-            _cachedEvents = todayEvents;
-            _cachedFilePath = icalFilePath;
-            _lastFileWriteTime = fileWriteTime;
-            _cacheDate = now;
-
-            _logger.LogDebug("解析 iCal 文件成功，今天共 {Count} 个非全天事件", todayEvents.Count);
-            return todayEvents;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "解析 iCal 文件失败: {Path}", icalFilePath);
-            return _cachedEvents ?? [];
+            return [];
         }
     }
 
@@ -71,12 +154,18 @@ public partial class IcalService
     /// </summary>
     public List<IcalCalendarEvent> GetEvents(string icalFilePath, DateTime from, DateTime to)
     {
-        if (string.IsNullOrWhiteSpace(icalFilePath) || !File.Exists(icalFilePath))
+        if (string.IsNullOrWhiteSpace(icalFilePath))
+            return [];
+
+        if (!IsWebUrl(icalFilePath) && !File.Exists(icalFilePath))
             return [];
 
         try
         {
-            var rawText = File.ReadAllText(icalFilePath);
+            var rawText = GetRawText(icalFilePath);
+            if (rawText == null)
+                return [];
+
             var allEvents = ParseIcalEvents(rawText);
             return allEvents
                 .Where(e => !e.IsAllDay && e.Start < to && e.End > from)
@@ -113,11 +202,127 @@ public partial class IcalService
     }
 
     /// <summary>
-    /// 异步刷新，强制重新读取文件
+    /// 获取远程 URL 的 iCal 内容，优先从远程获取，失败时回退到缓存。
+    /// 返回 null 表示远程和缓存都不可用。
     /// </summary>
+    private string? FetchIcalContent(string url)
+    {
+        EnsureCacheDir();
+        var cachePath = GetCachePath(url);
+
+        // 尝试从远程获取
+        try
+        {
+            var response = _httpClient.GetAsync(url).GetAwaiter().GetResult();
+            if (response.IsSuccessStatusCode)
+            {
+                var content = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                // 缓存到本地
+                File.WriteAllText(cachePath, content);
+                SetRemoteStatus(url, true);
+                _logger.LogDebug("从远程获取 iCal 成功: {Url}", url);
+                return content;
+            }
+
+            _logger.LogWarning("远程返回非成功状态码 {StatusCode}: {Url}", (int)response.StatusCode, url);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "从远程获取 iCal 失败: {Url}", url);
+        }
+
+        // 回退到缓存
+        SetRemoteStatus(url, false);
+        if (File.Exists(cachePath))
+        {
+            _logger.LogInformation("使用缓存的 iCal: {Url} -> {CachePath}", url, cachePath);
+            return File.ReadAllText(cachePath);
+        }
+
+        _logger.LogError("远程和缓存均不可用: {Url}", url);
+        return null;
+    }
+
+    /// <summary>
+    /// 预取并缓存一个 URL（在添加 URL 时调用）
+    /// </summary>
+    public bool TryFetchAndCache(string url)
+    {
+        EnsureCacheDir();
+        var cachePath = GetCachePath(url);
+
+        try
+        {
+            var response = _httpClient.GetAsync(url).GetAwaiter().GetResult();
+            if (response.IsSuccessStatusCode)
+            {
+                var content = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                File.WriteAllText(cachePath, content);
+                SetRemoteStatus(url, true);
+                _logger.LogInformation("预取并缓存 iCal 成功: {Url}", url);
+                return true;
+            }
+
+            _logger.LogWarning("预取失败，状态码 {StatusCode}: {Url}", (int)response.StatusCode, url);
+            SetRemoteStatus(url, false);
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "预取失败: {Url}", url);
+            SetRemoteStatus(url, false);
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// 删除 URL 对应的缓存文件
+    /// </summary>
+    public void RemoveCache(string url)
+    {
+        var cachePath = GetCachePath(url);
+        try
+        {
+            if (File.Exists(cachePath))
+                File.Delete(cachePath);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "删除缓存文件失败: {Path}", cachePath);
+        }
+
+        lock (_statusLock)
+        {
+            _remoteStatus.Remove(url);
+        }
+    }
+
+    /// <summary>
+    /// 获取指定 URL 的远程状态：true=在线，false=离线（使用缓存），null=未检测
+    /// </summary>
+    public bool? GetRemoteStatus(string url)
+    {
+        lock (_statusLock)
+        {
+            return _remoteStatus.TryGetValue(url, out var status) ? status : null;
+        }
+    }
+
+    /// <summary>
+    /// 判断一个路径是否为 web URL
+    /// </summary>
+    public static bool IsWebUrlPath(string path) => IsWebUrl(path);
+
+    private void SetRemoteStatus(string url, bool available)
+    {
+        lock (_statusLock)
+        {
+            _remoteStatus[url] = available;
+        }
+    }
     public Task RefreshAsync(string icalFilePath, DateTime now)
     {
-        _cachedEvents = null;
+        _textCache.Remove(icalFilePath);
         return Task.Run(() => GetTodayEvents(icalFilePath, now));
     }
 
