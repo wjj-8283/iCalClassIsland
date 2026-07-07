@@ -4,7 +4,7 @@ using iCalClassIsland.Services;
 
 namespace iCalClassIsland.Services.Automation.Triggers;
 
-[TriggerInfo("ical.eventStart", "iCal：上课", "")]
+[TriggerInfo("ical.eventStart", "iCal：事件开始", "")]
 public class IcalEventStartTrigger(IcalStateService stateService) : TriggerBase
 {
     public override void Loaded()

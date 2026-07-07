@@ -4,7 +4,7 @@ using iCalClassIsland.Services;
 
 namespace iCalClassIsland.Services.Automation.Triggers;
 
-[TriggerInfo("ical.eventEnd", "iCal：下课", "")]
+[TriggerInfo("ical.eventEnd", "iCal：事件结束", "")]
 public class IcalEventEndTrigger(IcalStateService stateService) : TriggerBase
 {
     public override void Loaded()
