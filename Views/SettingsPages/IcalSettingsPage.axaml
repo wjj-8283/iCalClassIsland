@@ -18,9 +18,9 @@
                         <Grid ColumnDefinitions="*,Auto">
                             <ListBox Grid.Column="0" x:Name="FileListBox" MinHeight="60"/>
                             <StackPanel Grid.Column="1" Margin="8 0 0 0" Spacing="4">
-                                <Button Content="添加" Click="OnAddFile" Width="60"/>
-                                <Button Content="添加 URL" Click="OnAddUrl" Width="60"/>
-                                <Button Content="移除" Click="OnRemoveFile" Width="60"/>
+                                <Button Content="添加" Click="OnAddFile" MinWidth="72"/>
+                                <Button Content="添加 URL" Click="OnAddUrl" MinWidth="72"/>
+                                <Button Content="移除" Click="OnRemoveFile" MinWidth="72"/>
                             </StackPanel>
                         </Grid>
                         <!-- Web URL 输入区域 -->

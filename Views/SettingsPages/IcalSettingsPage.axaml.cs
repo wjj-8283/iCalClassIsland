@@ -136,21 +136,18 @@ public partial class IcalSettingsPage : SettingsPageBase
             {
                 _plugin.PluginSettings.IcalFilePaths.Add(url);
                 StatusText.Text = $"已添加 URL 并缓存成功: {url}";
+                await _plugin.RefreshAsync();
+                UpdateStatus();
             }
             else
             {
-                // 即使远程不可用，也添加到列表（可以手动刷新后使用缓存）
-                _plugin.PluginSettings.IcalFilePaths.Add(url);
-                StatusText.Text = $"已添加 URL 但远程获取失败: {url}\n将尝试使用缓存数据。";
+                StatusText.Text = $"无法连接到远程源: {url}";
             }
         }
         else
         {
-            _plugin.PluginSettings.IcalFilePaths.Add(url);
+            StatusText.Text = "服务不可用，请稍后重试。";
         }
-
-        await _plugin.RefreshAsync();
-        UpdateStatus();
     }
 
     private void OnCancelUrl(object? s, RoutedEventArgs e)
