@@ -8,6 +8,7 @@ using ClassIsland.Shared.Helpers;
 using iCalClassIsland.Controls;
 using iCalClassIsland.Models;
 using iCalClassIsland.Services;
+using iCalClassIsland.Services.Automation.Triggers;
 using iCalClassIsland.Views;
 using iCalClassIsland.Views.SettingsPages;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,6 +27,10 @@ public class Plugin : PluginBase
     public override void Initialize(HostBuilderContext context, IServiceCollection services)
     {
         services.AddSingleton<IcalService>();
+        services.AddSingleton<IcalStateService>();
+        services.AddTrigger<IcalEventStartTrigger>();
+        services.AddTrigger<IcalEventEndTrigger>();
+        services.AddTrigger<IcalDayEndTrigger>();
         services.AddComponent<IcalComponent, IcalComponentSettingsControl>();
         services.AddSettingsPage<IcalSettingsPage>();
         services.AddSettingsPage<CalendarViewPage>();

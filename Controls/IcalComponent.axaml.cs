@@ -188,6 +188,9 @@ public partial class IcalComponent : ComponentBase<IcalComponentSettings>
         _todayEvents = todayEvents;
         _tomorrowEvents = tomorrowEvents;
 
+        // 通知状态服务，触发自动化信号（上课/下课/放学）
+        IAppHost.TryGetService<IcalStateService>()?.UpdateState(_todayEvents, now);
+
         var allEnded = _todayEvents.Count > 0 && _todayEvents.All(e => now >= e.End);
         var showTomorrow = ShouldShowTomorrow(allEnded) && _tomorrowEvents.Count > 0;
 
@@ -502,6 +505,10 @@ public partial class IcalComponent : ComponentBase<IcalComponentSettings>
     {
         var now = _exactTimeService.GetCurrentLocalDateTime();
         var events = _showingTomorrow ? _tomorrowEvents : _todayEvents;
+
+        // 每 50ms 检测事件状态变化，触发自动化信号
+        if (!_showingTomorrow)
+            IAppHost.TryGetService<IcalStateService>()?.UpdateState(_todayEvents, now);
 
         // 检测空闲标记位置是否变化（跨事件边界时重建布局）
         if (!_showingTomorrow && S.ShowIdleIndicator)
