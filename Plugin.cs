@@ -33,6 +33,7 @@ public class Plugin : PluginBase
         services.AddTrigger<IcalEventStartTrigger>();
         services.AddTrigger<IcalEventEndTrigger>();
         services.AddTrigger<IcalDayEndTrigger>();
+        services.AddTrigger<IcalCurrentEventStateChangedTrigger>();
         services.AddTrigger<IcalPreTimePointTrigger, IcalPreTimePointTriggerSettingsControl>();
         services.AddRule<IcalEventContainsRuleSettings, IcalEventContainsRuleSettingsControl>("ical.currentEventContains", "iCal：当前事件中包含", "");
         services.AddRule<IcalEventContainsRuleSettings, IcalEventContainsRuleSettingsControl>("ical.previousEventContains", "iCal：上个事件中包含", "");

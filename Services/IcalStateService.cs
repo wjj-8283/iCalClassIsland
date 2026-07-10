@@ -25,6 +25,9 @@ public class IcalStateService
     /// <summary>当当天所有 iCal 事件都已结束时触发（等效于「放学」）</summary>
     public event EventHandler? DayEnd;
 
+    /// <summary>当 iCal 事件状态发生变化时触发（事件开始/事件结束/一天结束）</summary>
+    public event EventHandler? CurrentEventStateChanged;
+
     /// <summary>下一个事件的开始时间（供 PreTimePoint 触发器使用）</summary>
     public DateTime? NextEventStart { get; private set; }
 
@@ -115,6 +118,7 @@ public class IcalStateService
             {
                 _logger.LogInformation("iCal 事件结束（下课）: {Uid}", _currentEventUid);
                 EventEnd?.Invoke(this, EventArgs.Empty);
+                CurrentEventStateChanged?.Invoke(this, EventArgs.Empty);
             }
 
             // 新事件开始
@@ -122,6 +126,7 @@ public class IcalStateService
             {
                 _logger.LogInformation("iCal 事件开始（上课）: {Summary}", current!.Summary);
                 EventStart?.Invoke(this, EventArgs.Empty);
+                CurrentEventStateChanged?.Invoke(this, EventArgs.Empty);
             }
 
             _currentEventUid = newUid;
@@ -133,6 +138,7 @@ public class IcalStateService
             _dayEndFired = true;
             _logger.LogInformation("iCal 当天事件全部结束（放学）");
             DayEnd?.Invoke(this, EventArgs.Empty);
+            CurrentEventStateChanged?.Invoke(this, EventArgs.Empty);
         }
     }
 
