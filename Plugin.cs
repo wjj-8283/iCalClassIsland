@@ -6,6 +6,8 @@ using ClassIsland.Core.Extensions.Registry;
 using ClassIsland.Shared;
 using ClassIsland.Shared.Helpers;
 using iCalClassIsland.Controls;
+using iCalClassIsland.Controls.RuleSettingsControls;
+using iCalClassIsland.Controls.TriggerSettingsControls;
 using iCalClassIsland.Models;
 using iCalClassIsland.Services;
 using iCalClassIsland.Services.Automation.Triggers;
@@ -31,6 +33,10 @@ public class Plugin : PluginBase
         services.AddTrigger<IcalEventStartTrigger>();
         services.AddTrigger<IcalEventEndTrigger>();
         services.AddTrigger<IcalDayEndTrigger>();
+        services.AddTrigger<IcalPreTimePointTrigger, IcalPreTimePointTriggerSettingsControl>();
+        services.AddRule<IcalEventContainsRuleSettings, IcalEventContainsRuleSettingsControl>("ical.currentEventContains", "iCal：当前事件中包含", "");
+        services.AddRule<IcalEventContainsRuleSettings, IcalEventContainsRuleSettingsControl>("ical.previousEventContains", "iCal：上个事件中包含", "");
+        services.AddRule<IcalEventContainsRuleSettings, IcalEventContainsRuleSettingsControl>("ical.nextEventContains", "iCal：下个事件中包含", "");
         services.AddComponent<IcalComponent, IcalComponentSettingsControl>();
         services.AddSettingsPage<IcalSettingsPage>();
         services.AddSettingsPage<CalendarViewPage>();
@@ -43,6 +49,28 @@ public class Plugin : PluginBase
             var cacheDir = Path.Combine(PluginConfigFolder, "Cache");
             var icalService = IAppHost.TryGetService<IcalService>();
             icalService?.InitializeCache(cacheDir);
+
+            // 注册规则处理器
+            var rulesetService = IAppHost.TryGetService<IRulesetService>();
+            var stateService = IAppHost.TryGetService<IcalStateService>();
+            if (rulesetService != null && stateService != null)
+            {
+                rulesetService.RegisterRuleHandler("ical.currentEventContains", settings =>
+                {
+                    if (settings is not IcalEventContainsRuleSettings s) return false;
+                    return s.IsMatching(stateService.CurrentEventSummary);
+                });
+                rulesetService.RegisterRuleHandler("ical.previousEventContains", settings =>
+                {
+                    if (settings is not IcalEventContainsRuleSettings s) return false;
+                    return s.IsMatching(stateService.PreviousEventSummary);
+                });
+                rulesetService.RegisterRuleHandler("ical.nextEventContains", settings =>
+                {
+                    if (settings is not IcalEventContainsRuleSettings s) return false;
+                    return s.IsMatching(stateService.NextEventSummary);
+                });
+            }
 
             PluginSettings = ConfigureFileHelper.LoadConfig<IcalPluginSettings>(_configPath);
             PluginSettings.PropertyChanged += (_, _) =>

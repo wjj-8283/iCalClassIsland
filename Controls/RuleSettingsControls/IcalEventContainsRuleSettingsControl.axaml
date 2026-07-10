@@ -1,0 +1,10 @@
+<ci:RuleSettingsControlBase x:TypeArguments="models:IcalEventContainsRuleSettings"
+                             x:Class="iCalClassIsland.Controls.RuleSettingsControls.IcalEventContainsRuleSettingsControl"
+                             xmlns="https://github.com/avaloniaui"
+                             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                             xmlns:ci="http://classisland.tech/schemas/xaml/core"
+                             xmlns:models="clr-namespace:iCalClassIsland.Models">
+    <Grid>
+        <TextBox Text="{Binding Settings.Text}" Watermark="输入要匹配的文本..." />
+    </Grid>
+</ci:RuleSettingsControlBase>

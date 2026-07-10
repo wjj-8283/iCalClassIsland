@@ -1,3 +1,4 @@
+using ClassIsland.Core.Abstractions.Services;
 using iCalClassIsland.Models;
 using Microsoft.Extensions.Logging;
 
@@ -10,6 +11,7 @@ namespace iCalClassIsland.Services;
 public class IcalStateService
 {
     private readonly ILogger<IcalStateService> _logger;
+    private readonly IRulesetService? _rulesetService;
     private string? _currentEventUid;
     private bool _dayEndFired;
     private DateTime _lastResetDate;
@@ -23,9 +25,28 @@ public class IcalStateService
     /// <summary>当当天所有 iCal 事件都已结束时触发（等效于「放学」）</summary>
     public event EventHandler? DayEnd;
 
-    public IcalStateService(ILogger<IcalStateService> logger)
+    /// <summary>下一个事件的开始时间（供 PreTimePoint 触发器使用）</summary>
+    public DateTime? NextEventStart { get; private set; }
+
+    /// <summary>当前进行中事件的结束时间（供 PreTimePoint 触发器使用）</summary>
+    public DateTime? CurrentEventEnd { get; private set; }
+
+    /// <summary>当天最后一个事件的结束时间（供 PreTimePoint 触发器使用）</summary>
+    public DateTime? LastEventEnd { get; private set; }
+
+    /// <summary>当前进行中事件的摘要（供规则使用）</summary>
+    public string? CurrentEventSummary { get; private set; }
+
+    /// <summary>上一个已结束事件的摘要（供规则使用）</summary>
+    public string? PreviousEventSummary { get; private set; }
+
+    /// <summary>下一个即将开始事件的摘要（供规则使用）</summary>
+    public string? NextEventSummary { get; private set; }
+
+    public IcalStateService(ILogger<IcalStateService> logger, IRulesetService? rulesetService = null)
     {
         _logger = logger;
+        _rulesetService = rulesetService;
     }
 
     /// <summary>
@@ -40,6 +61,44 @@ public class IcalStateService
             _dayEndFired = false;
             _currentEventUid = null;
             _lastResetDate = now.Date;
+        }
+
+        // 计算时间点信息（供 PreTimePoint 触发器使用）
+        NextEventStart = todayEvents
+            .Where(e => e.Start > now)
+            .OrderBy(e => e.Start)
+            .Select(e => (DateTime?)e.Start)
+            .FirstOrDefault();
+        CurrentEventEnd = todayEvents
+            .Where(e => e.Start <= now && now < e.End)
+            .Select(e => (DateTime?)e.End)
+            .FirstOrDefault();
+        LastEventEnd = todayEvents.Count > 0
+            ? todayEvents.Max(e => e.End)
+            : null;
+
+        // 计算事件摘要（供规则使用）
+        var prevCurrent = CurrentEventSummary;
+        var prevPrevious = PreviousEventSummary;
+        var prevNext = NextEventSummary;
+
+        var currentEvent = todayEvents.FirstOrDefault(e => e.Start <= now && now < e.End);
+        CurrentEventSummary = currentEvent?.Summary;
+        PreviousEventSummary = todayEvents
+            .Where(e => e.End <= now)
+            .OrderByDescending(e => e.End)
+            .Select(e => e.Summary)
+            .FirstOrDefault();
+        NextEventSummary = todayEvents
+            .Where(e => e.Start > now)
+            .OrderBy(e => e.Start)
+            .Select(e => e.Summary)
+            .FirstOrDefault();
+
+        // 摘要变化时通知规则集重新评估
+        if (prevCurrent != CurrentEventSummary || prevPrevious != PreviousEventSummary || prevNext != NextEventSummary)
+        {
+            _rulesetService?.NotifyStatusChanged();
         }
 
         // 找到当前正在进行的事件（第一个仍在进行中的非全天事件）

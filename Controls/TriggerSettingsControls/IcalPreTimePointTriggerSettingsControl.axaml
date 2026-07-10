@@ -1,0 +1,24 @@
+<ci:TriggerSettingsControlBase x:TypeArguments="models:IcalPreTimePointTriggerSettings"
+                               x:Class="iCalClassIsland.Controls.TriggerSettingsControls.IcalPreTimePointTriggerSettingsControl"
+                               xmlns="https://github.com/avaloniaui"
+                               xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                               xmlns:ci="http://classisland.tech/schemas/xaml/core"
+                               xmlns:models="clr-namespace:iCalClassIsland.Models">
+    <StackPanel Spacing="4"
+                Orientation="Horizontal">
+        <ComboBox VerticalAlignment="Center" x:Name="TimePointComboBox" SelectionChanged="TimePointComboBox_SelectionChanged">
+            <ComboBoxItem>
+                事件开始
+            </ComboBoxItem>
+            <ComboBoxItem>
+                事件结束
+            </ComboBoxItem>
+            <ComboBoxItem>
+                一天结束
+            </ComboBoxItem>
+        </ComboBox>
+        <ci:Field Prefix="之前" Suffix="秒">
+            <NumericUpDown Value="{Binding Settings.TimeSeconds, Converter={x:Static ci:NotNaNConverter.Instance}}" />
+        </ci:Field>
+    </StackPanel>
+</ci:TriggerSettingsControlBase>
