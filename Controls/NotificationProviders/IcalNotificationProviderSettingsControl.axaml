@@ -1,0 +1,131 @@
+<ci:NotificationProviderControlBase x:TypeArguments="models:IcalNotificationSettings"
+    x:Class="iCalClassIsland.Controls.NotificationProviders.IcalNotificationProviderSettingsControl"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ci="http://classisland.tech/schemas/xaml/core"
+    xmlns:models="clr-namespace:iCalClassIsland.Models.NotificationProviderSettings"
+    xmlns:controls="clr-namespace:FluentAvalonia.UI.Controls;assembly=FluentAvalonia"
+    xmlns:controls1="clr-namespace:ClassIsland.Core.Controls;assembly=ClassIsland.Core"
+    xmlns:converters1="clr-namespace:ClassIsland.Core.Converters;assembly=ClassIsland.Core">
+    <UserControl.Resources>
+        <converters1:IntToStringConverter x:Key="IntToStringConverter" />
+    </UserControl.Resources>
+    <ScrollViewer>
+        <StackPanel Classes="settings-container animated-intro"
+                    Margin="0">
+            <!-- 在日程开始前发出提醒 -->
+            <controls:SettingsExpander IconSource="{ci:FluentIconSource &#xe21b;}"
+                                        Header="在日程开始前发出提醒"
+                                        Description="在日程开始前一段时间发出醒目提醒，提示做好上课准备。">
+                <controls:SettingsExpander.Footer>
+                    <ToggleSwitch IsChecked="{Binding Settings.IsEventPreparingNotificationEnabled, Mode=TwoWay}" />
+                </controls:SettingsExpander.Footer>
+                <!-- 启用语音 -->
+                <controls:SettingsExpanderItem>
+                    <CheckBox Content="启用语音"
+                              IsChecked="{Binding Settings.IsSpeechEnabledOnEventPreparing}" />
+                </controls:SettingsExpanderItem>
+                <!-- 提前秒数 -->
+                <controls:SettingsExpanderItem IconSource="{ci:FluentIconSource &#xe02b;}"
+                                                Content="提前提醒时间"
+                                                Description="在日程开始前指定时间进行提醒。">
+                    <controls:SettingsExpanderItem.Footer>
+                        <ci:Field Suffix="秒">
+                            <controls:NumberBox Maximum="3600" Minimum="0"
+                                                Value="{Binding Settings.EventPreparingDeltaTime, Converter={x:Static ci:NotNaNConverter.Instance}}"
+                                                Width="150"
+                                                SpinButtonPlacementMode="Inline" />
+                        </ci:Field>
+                    </controls:SettingsExpanderItem.Footer>
+                </controls:SettingsExpanderItem>
+                <!-- 准备提醒正文文字 -->
+                <controls:SettingsExpanderItem>
+                    <ci:Field Label="准备提醒正文文字">
+                        <TextBox Text="{Binding Settings.EventPreparingOverlayText}"
+                                 MinWidth="150"
+                                 Watermark="（禁用）" />
+                    </ci:Field>
+                </controls:SettingsExpanderItem>
+                <!-- 准备提醒遮罩文字 -->
+                <controls:SettingsExpanderItem>
+                    <ci:Field Label="准备提醒遮罩文字">
+                        <TextBox Text="{Binding Settings.EventPreparingMaskText}"
+                                 MinWidth="150" />
+                    </ci:Field>
+                </controls:SettingsExpanderItem>
+            </controls:SettingsExpander>
+
+            <!-- 在日程开始时发出提醒 -->
+            <controls:SettingsExpander IconSource="{ci:FluentIconSource &#xe47a;}"
+                                        Header="在日程开始时发出提醒"
+                                        Description="在日程开始时发出醒目提醒，提示已经上课。">
+                <controls:SettingsExpander.Footer>
+                    <ToggleSwitch IsChecked="{Binding Settings.IsEventStartNotificationEnabled, Mode=TwoWay}" />
+                </controls:SettingsExpander.Footer>
+                <!-- 启用语音 -->
+                <controls:SettingsExpanderItem>
+                    <CheckBox Content="启用语音"
+                              IsChecked="{Binding Settings.IsSpeechEnabledOnEventStart}" />
+                </controls:SettingsExpanderItem>
+                <!-- 开始遮罩文字 -->
+                <controls:SettingsExpanderItem>
+                    <ci:Field Label="开始遮罩文字">
+                        <TextBox Text="{Binding Settings.EventStartMaskText}"
+                                 MinWidth="150" />
+                    </ci:Field>
+                </controls:SettingsExpanderItem>
+            </controls:SettingsExpander>
+
+            <!-- 在日程结束时发出提醒 -->
+            <controls:SettingsExpander IconSource="{ci:FluentIconSource &#xe4c4;}"
+                                        Header="在日程结束时发出提醒"
+                                        Description="在日程结束时发出醒目提醒，提示已经下课。">
+                <controls:SettingsExpander.Footer>
+                    <ToggleSwitch IsChecked="{Binding Settings.IsEventEndNotificationEnabled, Mode=TwoWay}" />
+                </controls:SettingsExpander.Footer>
+                <!-- 启用语音 -->
+                <controls:SettingsExpanderItem>
+                    <CheckBox Content="启用语音"
+                              IsChecked="{Binding Settings.IsSpeechEnabledOnEventEnd}" />
+                </controls:SettingsExpanderItem>
+                <!-- 结束遮罩文字 -->
+                <controls:SettingsExpanderItem>
+                    <ci:Field Label="结束遮罩文字">
+                        <TextBox Text="{Binding Settings.EventEndMaskText}"
+                                 MinWidth="150" />
+                    </ci:Field>
+                </controls:SettingsExpanderItem>
+                <!-- 结束提醒正文文字 -->
+                <controls:SettingsExpanderItem>
+                    <ci:Field Label="结束提醒正文文字">
+                        <TextBox Text="{Binding Settings.EventEndOverlayText}"
+                                 MinWidth="150"
+                                 Watermark="（禁用）" />
+                    </ci:Field>
+                </controls:SettingsExpanderItem>
+            </controls:SettingsExpander>
+
+            <!-- 显示事件额外信息 -->
+            <controls:SettingsExpander IconSource="{ci:FluentIconSource &#xeee9;}"
+                                        Header="显示事件额外信息"
+                                        Description="在提醒中显示事件地点、描述等额外信息。">
+                <controls:SettingsExpander.Footer>
+                    <ToggleSwitch IsChecked="{Binding Settings.ShowExtraInfo, Mode=TwoWay}" />
+                </controls:SettingsExpander.Footer>
+                <!-- 额外信息子项控制 -->
+                <controls:SettingsExpanderItem>
+                    <CheckBox Content="显示描述"
+                              IsChecked="{Binding Settings.ShowDescriptionInExtraInfo}" />
+                </controls:SettingsExpanderItem>
+                <controls:SettingsExpanderItem>
+                    <CheckBox Content="显示地点"
+                              IsChecked="{Binding Settings.ShowLocationInExtraInfo}" />
+                </controls:SettingsExpanderItem>
+                <controls:SettingsExpanderItem>
+                    <CheckBox Content="从描述中去除重复的地点信息（实验性）"
+                              IsChecked="{Binding Settings.StripLocationFromDescription}" />
+                </controls:SettingsExpanderItem>
+            </controls:SettingsExpander>
+        </StackPanel>
+    </ScrollViewer>
+</ci:NotificationProviderControlBase>

@@ -1,0 +1,45 @@
+<ci:NotificationProviderControlBase x:TypeArguments="models:IcalAfterSchoolNotificationSettings"
+    x:Class="iCalClassIsland.Controls.NotificationProviders.IcalAfterSchoolNotificationProviderSettingsControl"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ci="http://classisland.tech/schemas/xaml/core"
+    xmlns:models="clr-namespace:iCalClassIsland.Models.NotificationProviderSettings"
+    xmlns:controls="clr-namespace:FluentAvalonia.UI.Controls;assembly=FluentAvalonia"
+    xmlns:converters1="clr-namespace:ClassIsland.Core.Converters;assembly=ClassIsland.Core">
+    <UserControl.Resources>
+        <converters1:IntToStringConverter x:Key="IntToStringConverter" />
+    </UserControl.Resources>
+    <ScrollViewer>
+        <StackPanel Classes="settings-container animated-intro"
+                    Margin="0">
+            <!-- 在一天结束时发出提醒 -->
+            <controls:SettingsExpander IconSource="{ci:FluentIconSource &#xed35;}"
+                                        Header="在一天结束时发出提醒"
+                                        Description="在当天所有日程结束后显示醒目提醒。">
+                <controls:SettingsExpander.Footer>
+                    <ToggleSwitch IsChecked="{Binding Settings.IsEnabled, Mode=TwoWay}" />
+                </controls:SettingsExpander.Footer>
+                <!-- 提醒显示内容 -->
+                <controls:SettingsExpanderItem>
+                    <ci:Field Label="提醒显示内容">
+                        <TextBox Text="{Binding Settings.NotificationMsg}"
+                                 MinWidth="150" />
+                    </ci:Field>
+                </controls:SettingsExpanderItem>
+                <!-- 正文持续秒数 -->
+                <controls:SettingsExpanderItem IconSource="{ci:FluentIconSource &#xe02b;}"
+                                                Content="正文持续时间"
+                                                Description="一天结束提醒正文的显示时长。">
+                    <controls:SettingsExpanderItem.Footer>
+                        <ci:Field Suffix="秒">
+                            <controls:NumberBox Maximum="300" Minimum="5"
+                                                Value="{Binding Settings.OverlayDurationSeconds, Converter={x:Static ci:NotNaNConverter.Instance}}"
+                                                Width="150"
+                                                SpinButtonPlacementMode="Inline" />
+                        </ci:Field>
+                    </controls:SettingsExpanderItem.Footer>
+                </controls:SettingsExpanderItem>
+            </controls:SettingsExpander>
+        </StackPanel>
+    </ScrollViewer>
+</ci:NotificationProviderControlBase>

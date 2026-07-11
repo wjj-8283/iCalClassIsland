@@ -6,11 +6,13 @@ using ClassIsland.Core.Extensions.Registry;
 using ClassIsland.Shared;
 using ClassIsland.Shared.Helpers;
 using iCalClassIsland.Controls;
+using iCalClassIsland.Controls.NotificationProviders;
 using iCalClassIsland.Controls.RuleSettingsControls;
 using iCalClassIsland.Controls.TriggerSettingsControls;
 using iCalClassIsland.Models;
 using iCalClassIsland.Services;
 using iCalClassIsland.Services.Automation.Triggers;
+using iCalClassIsland.Services.NotificationProviders;
 using iCalClassIsland.Views;
 using iCalClassIsland.Views.SettingsPages;
 using Microsoft.Extensions.DependencyInjection;
@@ -41,6 +43,8 @@ public class Plugin : PluginBase
         services.AddComponent<IcalComponent, IcalComponentSettingsControl>();
         services.AddSettingsPage<IcalSettingsPage>();
         services.AddSettingsPage<CalendarViewPage>();
+        services.AddNotificationProvider<IcalNotificationProvider, IcalNotificationProviderSettingsControl>();
+        services.AddNotificationProvider<IcalAfterSchoolNotificationProvider, IcalAfterSchoolNotificationProviderSettingsControl>();
 
         _configPath = Path.Combine(PluginConfigFolder, "Settings.json");
 

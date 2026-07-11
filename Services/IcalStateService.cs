@@ -46,6 +46,18 @@ public class IcalStateService
     /// <summary>下一个即将开始事件的摘要（供规则使用）</summary>
     public string? NextEventSummary { get; private set; }
 
+    /// <summary>当前进行中事件的描述（供提醒使用）</summary>
+    public string? CurrentEventDescription { get; private set; }
+
+    /// <summary>当前进行中事件的地点（供提醒使用）</summary>
+    public string? CurrentEventLocation { get; private set; }
+
+    /// <summary>下一个即将开始事件的描述（供提醒使用）</summary>
+    public string? NextEventDescription { get; private set; }
+
+    /// <summary>下一个即将开始事件的地点（供提醒使用）</summary>
+    public string? NextEventLocation { get; private set; }
+
     public IcalStateService(ILogger<IcalStateService> logger, IRulesetService? rulesetService = null)
     {
         _logger = logger;
@@ -87,6 +99,8 @@ public class IcalStateService
 
         var currentEvent = todayEvents.FirstOrDefault(e => e.Start <= now && now < e.End);
         CurrentEventSummary = currentEvent?.Summary;
+        CurrentEventDescription = currentEvent?.Description;
+        CurrentEventLocation = currentEvent?.Location;
         PreviousEventSummary = todayEvents
             .Where(e => e.End <= now)
             .OrderByDescending(e => e.End)
@@ -97,6 +111,12 @@ public class IcalStateService
             .OrderBy(e => e.Start)
             .Select(e => e.Summary)
             .FirstOrDefault();
+        var nextEvent = todayEvents
+            .Where(e => e.Start > now)
+            .OrderBy(e => e.Start)
+            .FirstOrDefault();
+        NextEventDescription = nextEvent?.Description;
+        NextEventLocation = nextEvent?.Location;
 
         // 摘要变化时通知规则集重新评估
         if (prevCurrent != CurrentEventSummary || prevPrevious != PreviousEventSummary || prevNext != NextEventSummary)
